@@ -622,14 +622,27 @@ class new_thread(QThread):
         if is_client:
             client.send(p_end.bs)
 
-        if GPU_DEVICE:
-            filename = "/home/nvidia/Desktop/result_r/CUG-CUG2.4G-R2" + ".txt"
-            f = open(filename, 'w+')
-            # os.linesep代表当前操作系统上的换行符
-            f.write('START' + '\n')
-            f.write(result_str2)
-            f.write('END' + os.linesep + '\n')
-            f.close()
+        # 创建结果输出目录和文件 (跨平台兼容)
+        try:
+            # 获取当前脚本目录
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            result_dir = os.path.join(script_dir, "result_output")
+
+            # 创建输出目录
+            os.makedirs(result_dir, exist_ok=True)
+
+            # 生成文件名
+            filename = os.path.join(result_dir, "CUG-CUG2.4G-R2.txt")
+
+            # 写入结果文件
+            with open(filename, 'w+', encoding='utf-8') as f:
+                f.write('START' + '\n')
+                f.write(result_str2)
+                f.write('END' + os.linesep + '\n')
+
+            print(f"✅ 结果已保存到: {filename}")
+        except Exception as e:
+            print(f"❌ 保存结果文件失败: {e}")
 
         self.window.ResultLabel.setText(result_str)
 
@@ -763,6 +776,21 @@ class UsingTest(QMainWindow, Ui_MainWindow):
                 # 相机初始化失败的情况
                 self.statusbar.showMessage("❌ 相机连接失败")
                 self.label.setText("❌ 相机连接失败")
+                error_info = """
+❌ 相机连接失败
+
+🔧 请检查:
+• USB连接是否正常
+• 相机驱动是否安装
+• 设备是否被其他程序占用
+• Orbbec SDK是否正确安装
+
+💡 解决方案:
+1. 重新插拔USB连接
+2. 关闭其他使用相机的程序
+3. 重启应用程序
+4. 检查设备管理器中的相机设备
+                """
                 self.ResultLabel.setText(error_info)
 
         except Exception as e:

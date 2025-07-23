@@ -5,6 +5,7 @@ from PyQt5 import QtGui, QtCore
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+from PyQt5.QtCore import pyqtSignal
 import cv2
 import argparse
 import numpy as np
@@ -208,6 +209,11 @@ class detect_Flag_thread(QThread):
 
 
 class new_thread(QThread):
+    # 定义信号用于线程间通信
+    update_image = pyqtSignal(np.ndarray)  # 更新图像信号
+    update_label = pyqtSignal(str)  # 更新标签信号
+    update_result = pyqtSignal(str)  # 更新结果信号
+    show_start_button = pyqtSignal(bool)  # 显示开始按钮信号
 
     def __init__(self, Window):
         super(new_thread, self).__init__()
@@ -270,14 +276,26 @@ class new_thread(QThread):
         self.half = self.device != 'cpu'  # half precision only supported on CUDA
 
         # 加载yolo模型
-        self.model = YOLO('det300.pt')
+        try:
+            print("🔄 正在加载YOLO模型...")
+            self.model = YOLO('det300.pt')
+            print("✅ 主检测模型 det300.pt 加载成功")
 
-        # Get names and colors
-        self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
-        self.colors = [[np.random.randint(0, 255) for _ in range(3)] for _ in range(len(self.names))]
-        self.predictor = Predictor('yuan0517.pt', self.device)
+            # Get names and colors
+            self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
+            self.colors = [[np.random.randint(0, 255) for _ in range(3)] for _ in range(len(self.names))]
+            print(f"📋 模型类别数: {len(self.names) if self.names else 'Unknown'}")
 
-        self.model_w = YOLO('fruit.pt')
+            self.predictor = Predictor('yuan0517.pt', self.device)
+            print("✅ 分割模型 yuan0517.pt 加载成功")
+
+            self.model_w = YOLO('fruit.pt')
+            print("✅ 水果检测模型 fruit.pt 加载成功")
+
+        except Exception as e:
+            print(f"❌ 模型加载失败: {e}")
+            self.model = None
+            self.model_w = None
 
     def run(self):
         max_times = 15
@@ -320,13 +338,13 @@ class new_thread(QThread):
                 img_display = QImage(img_display, img_display.shape[1], img_display.shape[0], img_display.shape[1] * 3,
                                      QImage.Format_RGB888)
 
-                img_display = QtGui.QPixmap(img_display).scaled(640, 480)
-                self.window.ImgLabel.setPixmap(img_display)
-                self.window.label.setText(self.window._translate("MainWindow",
-                                                                 "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">空闲</span></p></body></html>"))
+                # 发射信号更新UI
+                self.update_image.emit(img_cpy)
+                self.update_label.emit("💤 系统空闲 - 等待开始检测")
+                self.show_start_button.emit(True)
+
                 pred = self.model(img, augment=opt.augment, device=opt.device)[0]
                 pred = self.model_w(img, augment=opt.augment, device=opt.device)[0]
-                self.window.StartButton.setVisible(True)
 
             else:
                 with torch.no_grad():
@@ -334,17 +352,41 @@ class new_thread(QThread):
                     if times % seconds_per != 0:
                         times += 1
                         continue
-                    results = self.model.track(img, augment=opt.augment, device=opt.device,
-                                               agnostic_nms=opt.agnostic_nms,
-                                               classes=opt.classes, conf=opt.conf_thres, iou=opt.iou_thres,
-                                               half=self.half)
-                    results_w = self.model_w.track(img, augment=opt.augment, device=opt.device, half=self.half,
-                                                   agnostic_nms=opt.agnostic_nms, classes=opt.classes,
-                                                   conf=opt.conf_thres,
-                                                   iou=opt.iou_thres)
+                    # 使用普通检测代替跟踪 (避免lap依赖问题)
+                    print(f"🔍 开始YOLO检测，置信度阈值: {opt.conf_thres}")
+
+                    # 检查模型是否加载成功
+                    if self.model is None:
+                        print("❌ 主检测模型未加载")
+                        continue
+                    if self.model_w is None:
+                        print("❌ 水果检测模型未加载")
+                        continue
+
+                    results = self.model(img, augment=opt.augment, device=opt.device,
+                                        agnostic_nms=opt.agnostic_nms,
+                                        classes=opt.classes, conf=opt.conf_thres, iou=opt.iou_thres,
+                                        half=self.half)
+                    results_w = self.model_w(img, augment=opt.augment, device=opt.device, half=self.half,
+                                           agnostic_nms=opt.agnostic_nms, classes=opt.classes,
+                                           conf=opt.conf_thres,
+                                           iou=opt.iou_thres)
 
                     result = results[0]
                     result_w = results_w[0]
+
+                    # 调试信息
+                    if hasattr(result, 'boxes') and result.boxes is not None:
+                        print(f"📊 主模型检测到 {len(result.boxes)} 个目标")
+                        if len(result.boxes) > 0:
+                            print(f"   置信度范围: {result.boxes.conf.min():.3f} - {result.boxes.conf.max():.3f}")
+                    else:
+                        print("❌ 主模型未检测到任何目标")
+
+                    if hasattr(result_w, 'boxes') and result_w.boxes is not None:
+                        print(f"📊 水果模型检测到 {len(result_w.boxes)} 个目标")
+                    else:
+                        print("❌ 水果模型未检测到任何目标")
                 if times == 0:
                     self.detect_Flag = True
                     self.detect_new_thread = detect_Flag_thread(self)
@@ -408,14 +450,9 @@ class new_thread(QThread):
                     times += 1
                     continue
 
-                img_display = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                img_display = QImage(img_display, img_display.shape[1], img_display.shape[0], img_display.shape[1] * 3,
-                                     QImage.Format_RGB888)
-                img_display = QtGui.QPixmap(img_display).scaled(640, 480)
-                self.window.ImgLabel.setPixmap(img_display)
-
-                self.window.label.setText(self.window._translate("MainWindow",
-                                                                 "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">检测中</span></p></body></html>"))
+                # 发射信号更新UI
+                self.update_image.emit(img)
+                self.update_label.emit("🔍 正在检测中...")
 
                 for k in range(20):
                     myList[k][one_round[k]] = myList[k][one_round[k]] + 1
@@ -436,8 +473,8 @@ class new_thread(QThread):
                     break
                 times += 1
 
-        self.window.label.setText(self.window._translate("MainWindow",
-                                                         "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">检测完成</span></p></body></html>"))
+        # 发射信号更新UI
+        self.update_label.emit("✅ 检测完成!")
 
         pri = []
         pri2 = []
@@ -463,16 +500,30 @@ class new_thread(QThread):
         p_end.pack_send(1, data_end)
         if is_client:
             client.send(p_end.bs)
-        if GPU_DEVICE:
-            filename = "/home/nvidia/Desktop/result_r/CUG-CUG2.4G-R1" + ".txt"
-            f = open(filename, 'w+')
-            # os.linesep代表当前操作系统上的换行符
-            f.write('START' + '\n')
-            f.write(result_str2)
-            f.write('END' + os.linesep + '\n')
-            f.close()
+        # 创建结果输出目录和文件 (跨平台兼容)
+        try:
+            # 获取当前脚本目录
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            result_dir = os.path.join(script_dir, "result_output")
 
-        self.window.ResultLabel.setText(result_str)
+            # 创建输出目录
+            os.makedirs(result_dir, exist_ok=True)
+
+            # 生成文件名
+            filename = os.path.join(result_dir, "CUG-CUG2.4G-R1.txt")
+
+            # 写入结果文件
+            with open(filename, 'w+', encoding='utf-8') as f:
+                f.write('START' + '\n')
+                f.write(result_str2)
+                f.write('END' + os.linesep + '\n')
+
+            print(f"✅ 结果已保存到: {filename}")
+        except Exception as e:
+            print(f"❌ 保存结果文件失败: {e}")
+
+        # 发射信号更新结果显示
+        self.update_result.emit(result_str)
 
     def __del__(self):
         """析构函数，释放摄像头资源"""
@@ -528,8 +579,31 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         self.setWindowIcon(QIcon("icon/cug.ico"))
         self.thread_run = True
         self.new_thread = new_thread(self)
+
+        # 连接信号槽
+        self.new_thread.update_image.connect(self.update_camera_image)
+        self.new_thread.update_label.connect(self.update_status_label)
+        self.new_thread.update_result.connect(self.update_result_text)
+        self.new_thread.show_start_button.connect(self.StartButton.setVisible)
+
         self.new_thread.start()
         self.StartButton.clicked.connect(self.detect)
+
+    def update_camera_image(self, img):
+        """更新摄像头图像显示"""
+        img_display = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_display = QImage(img_display, img_display.shape[1], img_display.shape[0],
+                           img_display.shape[1] * 3, QImage.Format_RGB888)
+        img_display = QtGui.QPixmap(img_display).scaled(640, 480)
+        self.ImgLabel.setPixmap(img_display)
+
+    def update_status_label(self, text):
+        """更新状态标签"""
+        self.label.setText(text)
+
+    def update_result_text(self, text):
+        """更新结果显示"""
+        self.ResultLabel.setText(text)
 
     def OpenImage(self):
         # imgName, imgType = QFileDialog.getOpenFileName(self, "打开图片", "", "*.jpg;;*.png;;All Files(*)")
@@ -590,7 +664,7 @@ if __name__ == '__main__':  # 程序的入口
     parser.add_argument('--source', type=str, default='inference/images', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--output', type=str, default='inference/output', help='output folder')  # output folder
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.5, help='object confidence threshold')
+    parser.add_argument('--conf-thres', type=float, default=0.1, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='IOU threshold for NMS')
     parser.add_argument('--device', default='0', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
