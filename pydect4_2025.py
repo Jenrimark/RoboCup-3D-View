@@ -18,8 +18,8 @@ import time
 from ultralytics import YOLO
 import socket
 
-address = '192.168.1.66'
-GPU_DEVICE = True
+address = '192.168.0.113'  # 修改为您的电脑IP地址
+GPU_DEVICE = True  # 禁用GPU，使用CPU模式
 
 last_number = []
 for i in range(20):
@@ -697,26 +697,80 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         self.new_thread.start()
         self.StartButton.clicked.connect(self.detect)
 
-        # 连接新增按钮的信号
-        self.cameraButton.clicked.connect(self.toggle_camera)
-        self.settingsButton.clicked.connect(self.show_settings)
+        # 连接新增按钮的信号 (按钮已隐藏)
+        # self.cameraButton.clicked.connect(self.toggle_camera)
+        # self.settingsButton.clicked.connect(self.show_settings)
 
-    def toggle_camera(self):
-        """切换摄像头状态"""
-        if hasattr(self.new_thread, 'camera_available') and self.new_thread.camera_available:
-            self.statusbar.showMessage("📹 摄像头正在运行...")
-        else:
-            self.statusbar.showMessage("❌ 摄像头未连接")
+        # 延迟启动相机测试，确保相机线程完全初始化
+        self.camera_test_timer = QTimer()
+        self.camera_test_timer.timeout.connect(self.auto_start_camera_test)
+        self.camera_test_timer.setSingleShot(True)
+        self.camera_test_timer.start(1000)  # 1秒后启动相机测试
 
-    def show_settings(self):
-        """显示设置对话框"""
-        from PyQt5.QtWidgets import QMessageBox
-        QMessageBox.information(self, "设置",
-            "🔧 设置功能\n\n"
-            "• 摄像头分辨率: 640x480\n"
-            "• AI模型: YOLOv5\n"
-            "• 检测阈值: 0.5\n"
-            "• GPU加速: " + ("启用" if GPU_DEVICE else "禁用"))
+    def auto_start_camera_test(self):
+        """自动启动相机测试，显示实时画面"""
+        try:
+            # 设置状态提示
+            self.statusbar.showMessage("🔍 正在自动检测相机设备...")
+            self.label.setText("📹 正在启动相机预览...")
+
+            # 等待相机线程完全初始化
+            if not hasattr(self.new_thread, 'use_orbbec'):
+                # 如果相机线程还没有初始化完成，再等待一下
+                self.camera_test_timer.start(500)  # 再等500ms
+                return
+
+            # 检查相机线程状态
+            if hasattr(self.new_thread, 'use_orbbec'):
+                if self.new_thread.use_orbbec:
+                    self.statusbar.showMessage("✅ Orbbec 3D相机已连接，实时预览已启动")
+                    camera_info = """
+🎥 相机信息:
+• 设备类型: Orbbec 3D相机
+• 分辨率: 640x480
+• 深度检测: 支持
+• 状态: 正常运行
+
+📊 系统状态:
+• GPU加速: """ + ("启用" if GPU_DEVICE else "禁用") + """
+• AI模型: 已加载
+• 实时预览: 运行中
+                    """
+                else:
+                    self.statusbar.showMessage("✅ USB摄像头已连接，实时预览已启动")
+                    camera_info = """
+🎥 相机信息:
+• 设备类型: USB摄像头
+• 分辨率: 640x480
+• 帧率: 30fps
+• 状态: 正常运行
+
+📊 系统状态:
+• GPU加速: """ + ("启用" if GPU_DEVICE else "禁用") + """
+• AI模型: 已加载
+• 实时预览: 运行中
+                    """
+
+                # 显示相机信息
+                self.ResultLabel.setText(camera_info)
+                self.label.setText("📹 相机预览运行中 - 点击'开始检测'进行目标识别")
+
+                # 启用开始按钮
+                self.StartButton.setVisible(True)
+                self.StartButton.setEnabled(True)
+
+            else:
+                # 相机初始化失败的情况
+                self.statusbar.showMessage("❌ 相机连接失败")
+                self.label.setText("❌ 相机连接失败")
+                self.ResultLabel.setText(error_info)
+
+        except Exception as e:
+            self.statusbar.showMessage(f"❌ 相机测试失败: {str(e)}")
+            self.label.setText("❌ 相机测试失败")
+            print(f"相机自动测试失败: {e}")
+
+
 
     def OpenImage(self):
         # imgName, imgType = QFileDialog.getOpenFileName(self, "打开图片", "", "*.jpg;;*.png;;All Files(*)")

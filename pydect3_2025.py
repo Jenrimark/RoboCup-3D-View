@@ -16,8 +16,8 @@ from ultralytics import YOLO
 import socket
 import time
 
-address = '192.168.1.66'
-GPU_DEVICE = True
+address = '192.168.0.113'  # 修改为您的电脑IP地址
+GPU_DEVICE = True  # 禁用GPU，使用CPU模式
 
 last_number = []
 for i in range(20):

@@ -115,47 +115,9 @@ class Ui_MainWindow(object):
         self.titleLabel.setAlignment(Qt.AlignCenter)
         self.titleLabel.setObjectName("titleLabel")
 
-        # 新增摄像头控制按钮
-        self.cameraButton = QtWidgets.QPushButton(self.centralwidget)
-        self.cameraButton.setGeometry(QtCore.QRect(50, 620, 120, 50))
-        self.cameraButton.setText("📹 摄像头")
-        self.cameraButton.setFont(QFont("Microsoft YaHei", 10, QFont.Bold))
-        self.cameraButton.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #16A085, stop:1 #138D75);
-                border: none;
-                border-radius: 25px;
-                color: white;
-                padding: 5px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #48C9B0, stop:1 #16A085);
-            }
-        """)
-        self.cameraButton.setObjectName("cameraButton")
 
-        # 新增设置按钮
-        self.settingsButton = QtWidgets.QPushButton(self.centralwidget)
-        self.settingsButton.setGeometry(QtCore.QRect(190, 620, 120, 50))
-        self.settingsButton.setText("⚙️ 设置")
-        self.settingsButton.setFont(QFont("Microsoft YaHei", 10, QFont.Bold))
-        self.settingsButton.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #8E44AD, stop:1 #7D3C98);
-                border: none;
-                border-radius: 25px;
-                color: white;
-                padding: 5px;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #A569BD, stop:1 #8E44AD);
-            }
-        """)
-        self.settingsButton.setObjectName("settingsButton")
+
+
 
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setGeometry(QtCore.QRect(780, 520, 580, 90))
