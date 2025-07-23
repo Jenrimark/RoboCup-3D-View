@@ -212,24 +212,51 @@ class new_thread(QThread):
     def __init__(self, Window):
         super(new_thread, self).__init__()
         self.window = Window
-        self.pipeline = orsdk.Pipeline()
         self.round = 0
         self.f = True
+        self.use_orbbec = False  # 标记是否使用Orbbec相机
+        self.pipeline = None
+        self.cap = None
 
-        config = orsdk.Config()
-        color_profile_list = self.pipeline.get_stream_profile_list(orsdk.OBSensorType.COLOR_SENSOR)
-        color_profile = color_profile_list.get_default_video_stream_profile()
-        config.enable_stream(color_profile)
-        depth_profile_list = self.pipeline.get_stream_profile_list(orsdk.OBSensorType.DEPTH_SENSOR)
-        depth_profile = depth_profile_list.get_default_video_stream_profile()
-        config.enable_stream(depth_profile)
-        config.set_align_mode(orsdk.OBAlignMode.HW_MODE)
+        # 首先尝试初始化Orbbec相机
+        try:
+            print("尝试连接Orbbec相机...")
+            self.pipeline = orsdk.Pipeline()
+
+            # 配置Orbbec相机
+            config = orsdk.Config()
+            color_profile_list = self.pipeline.get_stream_profile_list(orsdk.OBSensorType.COLOR_SENSOR)
+            color_profile = color_profile_list.get_default_video_stream_profile()
+            config.enable_stream(color_profile)
+            depth_profile_list = self.pipeline.get_stream_profile_list(orsdk.OBSensorType.DEPTH_SENSOR)
+            depth_profile = depth_profile_list.get_default_video_stream_profile()
+            config.enable_stream(depth_profile)
+            config.set_align_mode(orsdk.OBAlignMode.HW_MODE)
+
+            # 开始流式传输
+            profile = self.pipeline.start(config)
+            # 修改相机内参
+            config.set_align_mode(orsdk.OBAlignMode.HW_MODE)
+            self.use_orbbec = True
+            print("✅ 成功连接Orbbec相机")
+
+        except Exception as e:
+            print(f"❌ Orbbec相机连接失败: {e}")
+            print("🔄 切换到电脑自带摄像头...")
+
+            # 如果Orbbec相机失败，使用普通摄像头
+            self.cap = cv2.VideoCapture(0)  # 0表示默认摄像头
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            self.cap.set(cv2.CAP_PROP_FPS, 30)
+
+            if not self.cap.isOpened():
+                print("❌ 错误：无法打开电脑摄像头")
+                return
+            else:
+                print("✅ 成功连接电脑摄像头")
+
         cudnn.benchmark = True
-
-        # 开始流式传输
-        profile = self.pipeline.start(config)
-        # 修改相机内参
-        config.set_align_mode(orsdk.OBAlignMode.HW_MODE)
 
         out, source, weights, view_img, save_txt, imgsz = \
             opt.output, opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
@@ -260,14 +287,26 @@ class new_thread(QThread):
         is_client = check_socket_connection(address, 6666)
         # client.connect((address, 6666))
         while True:
-            frames = self.pipeline.wait_for_frames(100)
-            camera_param = self.pipeline.get_camera_param()
+            if self.use_orbbec:
+                # 使用Orbbec相机获取图像
+                frames = self.pipeline.wait_for_frames(100)
+                camera_param = self.pipeline.get_camera_param()
 
-            color_frame = frames.get_color_frame()
-            if not color_frame:
-                continue
-            # 将图像转换为numpy数组类型
-            color_image = self.color_frame_to_bgr_img0(color_frame)
+                color_frame = frames.get_color_frame()
+                if not color_frame:
+                    continue
+                # 将图像转换为numpy数组类型
+                color_image = self.color_frame_to_bgr_img0(color_frame)
+            else:
+                # 使用普通摄像头获取图像
+                ret, color_image = self.cap.read()
+
+                if not ret or color_image is None:
+                    print("无法读取摄像头帧")
+                    continue
+
+                # 调整图像大小到640x480
+                color_image = cv2.resize(color_image, (640, 480))
 
             img_cpy = color_image.copy()
             img = color_image.copy()
@@ -435,6 +474,18 @@ class new_thread(QThread):
 
         self.window.ResultLabel.setText(result_str)
 
+    def __del__(self):
+        """析构函数，释放摄像头资源"""
+        if hasattr(self, 'cap') and self.cap is not None:
+            self.cap.release()
+            print("普通摄像头资源已释放")
+        if hasattr(self, 'pipeline') and self.pipeline is not None:
+            try:
+                self.pipeline.stop()
+                print("Orbbec相机资源已释放")
+            except:
+                pass
+
     def color_frame_to_bgr_img0(self, frame):
         '''将彩图数据帧转换为numpy格式的BGR彩图'''
         width = frame.get_width()
@@ -473,7 +524,7 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         super(UsingTest, self).__init__(*args, **kwargs)
         self.setupUi(self)  # 初始化u
         self._translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle('3D识别 第 1' + '轮')
+        self.setWindowTitle('🤖 RoboCup 3D识别 第 1 轮 - v2025')
         self.setWindowIcon(QIcon("icon/cug.ico"))
         self.thread_run = True
         self.new_thread = new_thread(self)

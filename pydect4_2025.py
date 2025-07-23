@@ -687,7 +687,7 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         super(UsingTest, self).__init__(*args, **kwargs)
         self.setupUi(self)  # 初始化u
         self._translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle('🤖 RoboCup 3D 目标检测系统 v2025')
+        self.setWindowTitle('🤖 RoboCup 3D识别 第 2 轮 - v2025')
         try:
             self.setWindowIcon(QIcon("icon/cug.ico"))
         except:
