@@ -214,7 +214,6 @@ class new_thread(QThread):
     update_label = pyqtSignal(str)  # 更新标签信号
     update_result = pyqtSignal(str)  # 更新结果信号
     show_start_button = pyqtSignal(bool)  # 显示开始按钮信号
-    detection_finished = pyqtSignal()  # 检测完成信号
 
     def __init__(self, Window):
         super(new_thread, self).__init__()
@@ -224,7 +223,6 @@ class new_thread(QThread):
         self.use_orbbec = False  # 标记是否使用Orbbec相机
         self.pipeline = None
         self.cap = None
-        self.should_detect = True  # 控制是否应该开始检测
 
         # 首先尝试初始化Orbbec相机
         try:
@@ -300,23 +298,12 @@ class new_thread(QThread):
             self.model_w = None
 
     def run(self):
-        max_times = 50
+        max_times = 15
         times = 0
         seconds_per = 1
         print('show camera scene....')
         is_client = check_socket_connection(address, 6666)
-
-        # 发射信号通知UI模型加载完成，准备开始检测
-        self.update_label.emit("✅ 模型加载完成，准备开始检测...")
-        self.show_start_button.emit(False)  # 隐藏开始按钮
-
-        # 等待一秒让用户看到状态
-        time.sleep(1)
-
-        # 直接开始检测
-        self.should_detect = True
-        self.window.thread_run = False  # 设置为检测模式
-
+        # client.connect((address, 6666))
         while True:
             if self.use_orbbec:
                 # 使用Orbbec相机获取图像
@@ -341,10 +328,25 @@ class new_thread(QThread):
 
             img_cpy = color_image.copy()
             img = color_image.copy()
+            # img0 = np.expand_dims(depth_image_cpy, axis=-1)
+            # img0 = np.repeat(img0, 3, axis=-1)
             img0 = img
+            if self.window.thread_run:
+                masks = self.predictor.predict(img0, 1)
 
-            # 如果需要检测，则进行检测
-            if self.should_detect:
+                img_display = cv2.cvtColor(img_cpy, cv2.COLOR_BGR2RGB)
+                img_display = QImage(img_display, img_display.shape[1], img_display.shape[0], img_display.shape[1] * 3,
+                                     QImage.Format_RGB888)
+
+                # 发射信号更新UI
+                self.update_image.emit(img_cpy)
+                self.update_label.emit("💤 系统空闲 - 等待开始检测")
+                self.show_start_button.emit(True)
+
+                pred = self.model(img, augment=opt.augment, device=opt.device)[0]
+                pred = self.model_w(img, augment=opt.augment, device=opt.device)[0]
+
+            else:
                 with torch.no_grad():
                     # 预测，返回的结果包括识别的物体类别，框的位置，和该类物品的概率
                     if times % seconds_per != 0:
@@ -468,32 +470,9 @@ class new_thread(QThread):
                                 break
 
                 if times >= max_times:
-                    # 检测完成，停止检测并显示结果
-                    self.should_detect = False
-                    self.process_detection_results(is_client)
-
-                    # 等待重新检测指令
-                    while not self.should_detect:
-                        # 显示最后一帧图像
-                        self.update_image.emit(img)
-                        time.sleep(0.1)
-
-                    # 重置检测参数
-                    times = 0
-                    for i in range(20):
-                        number[i] = 0
-                        for j in range(100):
-                            myList[i][j] = 0
-                    continue
+                    break
                 times += 1
-            else:
-                # 如果不需要检测，只显示摄像头画面
-                self.update_image.emit(color_image)
-                self.update_label.emit("📷 摄像头预览")
-                time.sleep(0.03)  # 控制帧率
 
-    def process_detection_results(self, is_client):
-        """处理检测结果"""
         # 发射信号更新UI
         self.update_label.emit("✅ 检测完成!")
 
@@ -502,6 +481,7 @@ class new_thread(QThread):
         result_str = ''
         result_str2 = ''
         for aa in range(20):
+
             if number[aa] != 0:
                 st = "目标ID：" + str(data[aa]) + "   数量：" + str(number[aa])
                 pri.append(st)
@@ -520,7 +500,6 @@ class new_thread(QThread):
         p_end.pack_send(1, data_end)
         if is_client:
             client.send(p_end.bs)
-
         # 创建结果输出目录和文件 (跨平台兼容)
         try:
             # 获取当前脚本目录
@@ -543,9 +522,8 @@ class new_thread(QThread):
         except Exception as e:
             print(f"❌ 保存结果文件失败: {e}")
 
-        # 发射信号更新结果显示和显示重新检测按钮
+        # 发射信号更新结果显示
         self.update_result.emit(result_str)
-        self.detection_finished.emit()
 
     def __del__(self):
         """析构函数，释放摄像头资源"""
@@ -597,7 +575,7 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         super(UsingTest, self).__init__(*args, **kwargs)
         self.setupUi(self)  # 初始化u
         self._translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle('🤖 RoboCup 3D识别 - v2025')
+        self.setWindowTitle('🤖 RoboCup 3D识别 第 1 轮 - v2025')
         self.setWindowIcon(QIcon("icon/cug.ico"))
         self.thread_run = True
         self.new_thread = new_thread(self)
@@ -607,14 +585,9 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         self.new_thread.update_label.connect(self.update_status_label)
         self.new_thread.update_result.connect(self.update_result_text)
         self.new_thread.show_start_button.connect(self.StartButton.setVisible)
-        self.new_thread.detection_finished.connect(self.on_detection_finished)
-
-        # 修改按钮文本为"重新检测"并隐藏
-        self.StartButton.setText("🔄 重新检测")
-        self.StartButton.setVisible(False)
 
         self.new_thread.start()
-        self.StartButton.clicked.connect(self.restart_detection)
+        self.StartButton.clicked.connect(self.detect)
 
     def update_camera_image(self, img):
         """更新摄像头图像显示"""
@@ -631,18 +604,6 @@ class UsingTest(QMainWindow, Ui_MainWindow):
     def update_result_text(self, text):
         """更新结果显示"""
         self.ResultLabel.setText(text)
-
-    def on_detection_finished(self):
-        """检测完成后的处理"""
-        self.StartButton.setVisible(True)  # 显示重新检测按钮
-        self.update_status_label("✅ 检测完成！点击下方按钮重新检测")
-
-    def restart_detection(self):
-        """重新开始检测"""
-        self.StartButton.setVisible(False)  # 隐藏重新检测按钮
-        self.ResultLabel.setText("")  # 清空结果显示
-        self.new_thread.should_detect = True  # 设置检测标志
-        self.update_status_label("🔄 重新开始检测...")
 
     def OpenImage(self):
         # imgName, imgType = QFileDialog.getOpenFileName(self, "打开图片", "", "*.jpg;;*.png;;All Files(*)")
@@ -686,12 +647,14 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         return img, ratio, (dw, dh)
 
     def detect(self):
-        """原来的检测方法，现在已经不需要了"""
-        pass
+        self.thread_run = False
+        # self.fri_pipeline.stop()
+        # 流式传输循环
+
+        # 记录帧数
 
     def StartButton_clicked(self):
-        """原来的按钮点击方法，现在重定向到重新检测"""
-        self.restart_detection()
+        self.detect()
 
 
 if __name__ == '__main__':  # 程序的入口

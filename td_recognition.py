@@ -176,4 +176,4 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(_translate("MainWindow", "🤖 RoboCup 3D 目标检测系统"))
         self.StartButton.setText(_translate("MainWindow", "🚀 开始检测"))
         self.label.setText(_translate("MainWindow", "💤 系统空闲 - 等待开始检测"))
-        self.menu.setTitle(_translate("MainWindow", "关于"))
+        self.menu.setTitle(_translate("MainWindow", "v2025"))
