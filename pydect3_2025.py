@@ -280,8 +280,8 @@ class new_thread(QThread):
         # 加载yolo模型
         try:
             print("正在加载YOLO模型...")
-            self.model = YOLO('det300.pt')
-            print("√ 主检测模型 det300.pt 加载成功")
+            self.model = YOLO('best.pt')
+            print("√ 主检测模型 best.pt 加载成功")
 
             # Get names and colors
             self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
