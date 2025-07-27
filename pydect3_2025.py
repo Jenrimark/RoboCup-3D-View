@@ -21,7 +21,7 @@ address = '192.168.0.113'  # 修改为您的电脑IP地址
 GPU_DEVICE = False  # 禁用GPU，使用CPU模式
 
 last_number = []
-for i in range(20):
+for i in range(10):
     last_number.append(0)
 # 识别时间
 detect_time = [16, 16, 16]
@@ -40,10 +40,10 @@ SAT_NUM = 0.9
 # 单轮的物品个数
 number = []
 one_round = []
-for i in range(20):
+for i in range(10):
     number.append(0)
     one_round.append(0)
-myList = [([0] * 100) for i in range(20)]
+myList = [([0] * 100) for i in range(10)]
 
 # 对于某物品 单独置信度阈值
 radio = [[0.5, 0.25, 0.5, 0.25],
@@ -52,15 +52,12 @@ radio = [[0.5, 0.25, 0.5, 0.25],
          [0.5, 0.5, 0.5, 0.25],
          [0.5, 0.5, 0.5, 0.4]]
 
-data = {0: 'CA001', 1: 'CA002', 2: 'CA003', 3: 'CA004', 4: 'CB001', 5: 'CB002', 6: 'CB003', 7: 'CB004',
-        8: 'CC001', 9: 'CC002', 10: 'CC003', 11: 'CC004', 12: 'CD001', 13: 'CD002', 14: 'CD003', 15: 'CD004',
-        16: 'W001', 17: 'W002', 18: 'W003', 19: 'W004'}
+data = {0: 'CA001', 1: 'CA002', 2: 'CB001', 3: 'CB002', 4: 'CC001', 5: 'CC002', 6: 'CD001', 7: 'CD002',
+        8: 'W001', 9: 'W002'}
 rgb_dict = {0: (255, 0, 0), 1: (0, 255, 0), 2: (0, 0, 255), 3: (255, 255, 0), 4: (255, 0, 255), 5: (0, 255, 255),
-            6: (128, 0, 0), 7: (0, 128, 0), 8: (0, 0, 128), 9: (128, 128, 0), 10: (128, 0, 128), 11: (0, 128, 128),
-            12: (64, 0, 0), 13: (0, 64, 0), 14: (0, 0, 64), 15: (64, 64, 0), 16: (64, 0, 64), 17: (0, 64, 64),
-            18: (192, 192, 192), 19: (128, 128, 128)}
-elseObject = [12, 13, 14, 15, 17, 18 ,19]
-## else_dict = {0: 12, 1: 13, 2: 14, 3: 15, 4: 16, 5: 17, 6:19, 7:18}
+            6: (128, 0, 0), 7: (0, 128, 0), 8: (0, 0, 128), 9: (128, 128, 0)}
+elseObject = [6, 7, 8, 9]
+## else_dict = {0: 6, 1: 7, 2: 8, 3: 9}
 client = socket.socket()
 
 
@@ -396,15 +393,13 @@ class new_thread(QThread):
 
                 masks = self.predictor.predict(img0, times)
                 one_round.clear()
-                for i in range(20):
+                for i in range(10):
                     one_round.append(0)
                 if result is not None or len(result) != 0:
                     for index in range(len(result.boxes.cls)):
                         cls_index = int(result.boxes.cls[index])
                         if cls_index in elseObject:
                             continue
-                        if cls_index == 16:
-                            cls_index = 7
                         if GPU_DEVICE:
                             xyxy = result.boxes[index].xyxy.cpu().numpy()[0]
                             xyxy = torch.from_numpy(xyxy)##.cuda()
@@ -452,11 +447,11 @@ class new_thread(QThread):
                 self.update_image.emit(img)
                 self.update_label.emit("正在检测中...")
 
-                for k in range(20):
+                for k in range(10):
                     myList[k][one_round[k]] = myList[k][one_round[k]] + 1
 
                 if times == max_times:
-                    for i in range(20):
+                    for i in range(10):
                         max_ = 0
                         k = 0
                         if myList[i][0] < times / seconds_per * SAT_NUM:
@@ -480,7 +475,7 @@ class new_thread(QThread):
 
                     # 重置检测参数
                     times = 0
-                    for i in range(20):
+                    for i in range(10):
                         number[i] = 0
                         for j in range(100):
                             myList[i][j] = 0
@@ -501,7 +496,7 @@ class new_thread(QThread):
         pri2 = []
         result_str = ''
         result_str2 = ''
-        for aa in range(20):
+        for aa in range(10):
             if number[aa] != 0:
                 st = "目标ID：" + str(data[aa]) + "   数量：" + str(number[aa])
                 pri.append(st)
