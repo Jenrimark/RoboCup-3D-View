@@ -60,7 +60,7 @@ rgb_dict = {0: (255, 0, 0), 1: (0, 255, 0), 2: (0, 0, 255), 3: (255, 255, 0), 4:
             12: (64, 0, 0), 13: (0, 64, 0), 14: (0, 0, 64), 15: (64, 64, 0), 16: (64, 0, 64), 17: (0, 64, 64),
             18: (192, 192, 192), 19: (128, 128, 128)}
 elseObject = [12, 13, 14, 15, 17, 18 ,19]
-else_dict = {0: 12, 1: 13, 2: 14, 3: 15, 4: 16, 5: 17, 6:19, 7:18}
+## else_dict = {0: 12, 1: 13, 2: 14, 3: 15, 4: 16, 5: 17, 6:19, 7:18}
 client = socket.socket()
 
 
@@ -291,13 +291,13 @@ class new_thread(QThread):
             self.predictor = Predictor('yuan0517.pt', self.device)
             print("✅ 分割模型 yuan0517.pt 加载成功")
 
-            self.model_w = YOLO('fruit.pt')
-            print("✅ 水果检测模型 fruit.pt 加载成功")
+            ## self.model_w = YOLO('fruit.pt')
+            ## print("✅ 水果检测模型 fruit.pt 加载成功")
 
         except Exception as e:
             print(f"❌ 模型加载失败: {e}")
             self.model = None
-            self.model_w = None
+            ## self.model_w = None
 
     def run(self):
         max_times = 50
@@ -357,21 +357,21 @@ class new_thread(QThread):
                     if self.model is None:
                         print("❌ 主检测模型未加载")
                         continue
-                    if self.model_w is None:
-                        print("❌ 水果检测模型未加载")
-                        continue
+                    ## if self.model_w is None:
+                    ##     print("❌ 水果检测模型未加载")
+                    ##     continue
 
                     results = self.model(img, augment=opt.augment, device=opt.device,
                                         agnostic_nms=opt.agnostic_nms,
                                         classes=opt.classes, conf=opt.conf_thres, iou=opt.iou_thres,
                                         half=self.half)
-                    results_w = self.model_w(img, augment=opt.augment, device=opt.device, half=self.half,
-                                           agnostic_nms=opt.agnostic_nms, classes=opt.classes,
-                                           conf=opt.conf_thres,
-                                           iou=opt.iou_thres)
+                    ## results_w = self.model_w(img, augment=opt.augment, device=opt.device, half=self.half,
+                    ##                        agnostic_nms=opt.agnostic_nms, classes=opt.classes,
+                    ##                        conf=opt.conf_thres,
+                    ##                        iou=opt.iou_thres)
 
                     result = results[0]
-                    result_w = results_w[0]
+                    ## result_w = results_w[0]
 
                     # 调试信息
                     if hasattr(result, 'boxes') and result.boxes is not None:
@@ -381,10 +381,10 @@ class new_thread(QThread):
                     else:
                         print("❌ 主模型未检测到任何目标")
 
-                    if hasattr(result_w, 'boxes') and result_w.boxes is not None:
-                        print(f"📊 水果模型检测到 {len(result_w.boxes)} 个目标")
-                    else:
-                        print("❌ 水果模型未检测到任何目标")
+                    ## if hasattr(result_w, 'boxes') and result_w.boxes is not None:
+                    ##     print(f"📊 水果模型检测到 {len(result_w.boxes)} 个目标")
+                    ## else:
+                    ##     print("❌ 水果模型未检测到任何目标")
                 if times == 0:
                     self.detect_Flag = True
                     self.detect_new_thread = detect_Flag_thread(self)
@@ -423,27 +423,27 @@ class new_thread(QThread):
                                 one_round[item] += 1
                                 img = draw_detection_box(img, xyxy, data[item], result.boxes.conf[index],
                                                          rgb_dict[item])
-                elif result_w is not None or len(result_w) != 0:
-                    for index in range(len(result_w.boxes.cls)):
-                        cls_index = else_dict[int(result_w.boxes.cls[index])]
-                        if GPU_DEVICE:
-                            xyxy = result_w.boxes[index].xyxy.cpu().numpy()[0]
-                            xyxy = torch.from_numpy(xyxy).cuda()
-                        else:
-                            xyxy = result_w.boxes[index].xyxy.numpy()[0]
-                        x1 = int(xyxy[0])
-                        y1 = int(xyxy[1])
-                        x2 = int(xyxy[2])
-                        y2 = int(xyxy[3])
-                        x_center = int((x1 + x2) / 2)
-                        y_center = int(0.5 * y2 + 0.5 * y1)
-
-                        if len(masks) > 0:
-                            if masks[y_center][x_center] > 0:
-                                item = cls_index
-                                one_round[item] += 1
-                                img = draw_detection_box(img, xyxy, data[item], result_w.boxes.conf[index],
-                                                         rgb_dict[item])
+                ## elif result_w is not None or len(result_w) != 0:
+                ##     for index in range(len(result_w.boxes.cls)):
+                ##         cls_index = else_dict[int(result_w.boxes.cls[index])]
+                ##         if GPU_DEVICE:
+                ##             xyxy = result_w.boxes[index].xyxy.cpu().numpy()[0]
+                ##             xyxy = torch.from_numpy(xyxy).cuda()
+                ##         else:
+                ##             xyxy = result_w.boxes[index].xyxy.numpy()[0]
+                ##         x1 = int(xyxy[0])
+                ##         y1 = int(xyxy[1])
+                ##         x2 = int(xyxy[2])
+                ##         y2 = int(xyxy[3])
+                ##         x_center = int((x1 + x2) / 2)
+                ##         y_center = int(0.5 * y2 + 0.5 * y1)
+                ##
+                ##         if len(masks) > 0:
+                ##             if masks[y_center][x_center] > 0:
+                ##                 item = cls_index
+                ##                 one_round[item] += 1
+                ##                 img = draw_detection_box(img, xyxy, data[item], result_w.boxes.conf[index],
+                ##                                          rgb_dict[item])
                 else:
                     times += 1
                     continue
