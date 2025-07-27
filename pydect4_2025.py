@@ -70,9 +70,7 @@ conf_limit = [0.2, 0.7]
 data = {0: 'CA001', 1: 'CA002', 2: 'CB001', 3: 'CB002', 4: 'CC001', 5: 'CC002', 6: 'CD001', 7: 'CD002',
         8: 'W001', 9: 'W002'}
 rgb_dict = {0: (255, 0, 0), 1: (0, 255, 0), 2: (0, 0, 255), 3: (255, 255, 0), 4: (255, 0, 255), 5: (0, 255, 255),
-            6: (128, 0, 0), 7: (0, 128, 0), 8: (0, 0, 128), 9: (128, 128, 0), 10: (128, 0, 128), 11: (0, 128, 128),
-            12: (64, 0, 0), 13: (0, 64, 0), 14: (0, 0, 64), 15: (64, 64, 0), 16: (64, 0, 64), 17: (0, 64, 64),
-            18: (192, 192, 192), 19: (128, 128, 128)}
+            6: (128, 0, 0), 7: (0, 128, 0), 8: (0, 0, 128), 9: (128, 128, 0)}
 elseObject = [12, 13, 14, 15]
 else_dict = {0: 12, 1: 13, 2: 14, 3: 15}
 client = socket.socket()
@@ -464,7 +462,7 @@ class new_thread(QThread):
 
                 self.window.ResultLabel.setText("")
                 one_round.clear()
-                for i in range(20):
+                for i in range(10):
                     one_round.append(0)
                 flag1 = False
                 flag2 = False
@@ -536,7 +534,7 @@ class new_thread(QThread):
                     masked_image = cv2.bitwise_and(img, img, mask=mask)
                     cv2.imwrite(output_path, masked_image)
                 self.window.label.setText("🔍 正在检测中...")
-                for k in range(20):
+                for k in range(10):
                     if one_round[k] > expect_num[k]:
                         t = (one_round[k] - expect_num[k]) / expect_num[k]
                         ra = random.random()
@@ -551,12 +549,12 @@ class new_thread(QThread):
                             conf_shift[k] -= conf_step
                         if (base_conf[k] + conf_shift[k]) < conf_limit[0]:
                             conf_shift[k] = conf_limit[0] + base_conf[k]
-                for k in range(20):
+                for k in range(10):
                     myList[k][one_round[k]] = myList[k][one_round[k]] + 1
                 times += 1
 
                 if self.detect_Flag == False:
-                    for i in range(20):
+                    for i in range(10):
                         max_ = 0
                         k = 0
                         if self.round < 2:
@@ -570,7 +568,7 @@ class new_thread(QThread):
                             if 0 < myList[i][j] and myList[i][j] > times / seconds_per * 0.1:
                                 number[i] = j
                                 break
-                    for i in range(20):
+                    for i in range(10):
                         last_number[i] = last_number[i] + number[i]
                         if last_number[i] > 5:
                             last_number[i] = 5;
@@ -595,7 +593,7 @@ class new_thread(QThread):
                     # 显示当前轮次结果
                     pri = []
                     result_str = ''
-                    for aa in range(20):
+                    for aa in range(10):
                         if number[aa] != 0:
                             st = "目标ID：" + str(data[aa]) + "   数量：" + str(number[aa])
                             pri.append(st)
@@ -627,7 +625,7 @@ class new_thread(QThread):
         pri2 = []
         result_str = ''
         result_str2 = ''
-        for aa in range(20):
+        for aa in range(10):
             if last_number[aa] != 0:
                 st = "目标ID：" + str(data[aa]) + "   数量：" + str(last_number[aa])
                 pri.append(st)
