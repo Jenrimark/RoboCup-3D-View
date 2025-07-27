@@ -11,14 +11,14 @@ import argparse
 import numpy as np
 import pyorbbecsdk as orsdk
 import torch
-import torch.backends.cudnn as cudnn
+## import torch.backends.cudnn as cudnn
 import shutil
 from ultralytics import YOLO
 import socket
 import time
 
 address = '192.168.0.113'  # 修改为您的电脑IP地址
-GPU_DEVICE = True  # 禁用GPU，使用CPU模式
+GPU_DEVICE = False  # 禁用GPU，使用CPU模式
 
 last_number = []
 for i in range(20):
@@ -154,7 +154,7 @@ class Predictor:
 
     def predict(self, im0, times):
         imgsz = (640, 480)
-        results = self.segment_model(im0, device=self.device, conf=0.25, iou=self.iou_thres, half=False,
+        results = self.segment_model(im0, device='cpu', conf=0.25, iou=self.iou_thres, half=False,
                                      max_det=self.max_det)
         max_conf = -1
         masks = [[0 for _ in range(640)] for _ in range(480)]
@@ -166,7 +166,7 @@ class Predictor:
                 masks = np.array(masks)
                 masks[160:320, 220:420] = 1
                 if GPU_DEVICE:
-                    masks = torch.from_numpy(masks).cuda()
+                    masks = torch.from_numpy(masks)
                 return masks
             mask_data = r.masks.data
             confs = r.boxes.conf
@@ -177,7 +177,7 @@ class Predictor:
             #         max_conf = conf
             #         if GPU_DEVICE:
             #             masks = data.cpu().numpy()
-            #             masks = torch.from_numpy(masks).cuda()
+            #             masks = torch.from_numpy(masks)##.cuda()
             #         else:
             #             masks = data.numpy()
             center = 320
@@ -191,7 +191,7 @@ class Predictor:
                     min_distance = dis
                     if GPU_DEVICE:
                         masks = data.cpu().numpy()
-                        masks = torch.from_numpy(masks).cuda()
+                        masks = torch.from_numpy(masks)##.cuda()
                     else:
                         masks = data.numpy()
             return masks
@@ -264,18 +264,18 @@ class new_thread(QThread):
             else:
                 print("✅ 成功连接电脑摄像头")
 
-        cudnn.benchmark = True
+        ## cudnn.benchmark = True
 
         out, source, weights, view_img, save_txt, imgsz = \
             opt.output, opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
         webcam = source == '0' or source.startswith('rtsp') or source.startswith('http') or source.endswith('.txt')
 
         # 初始化相关参数
-        self.device = opt.device
+        self.device = 'cpu'  # 强制使用CPU设备
         if os.path.exists(out):
             shutil.rmtree(out)  # delete output folder
         os.makedirs(out)  # make new output folder
-        self.half = self.device != 'cpu'  # half precision only supported on CUDA
+        self.half = False  # 强制使用CPU模式，禁用半精度
 
         # 加载yolo模型
         try:
@@ -288,7 +288,7 @@ class new_thread(QThread):
             self.colors = [[np.random.randint(0, 255) for _ in range(3)] for _ in range(len(self.names))]
             print(f"📋 模型类别数: {len(self.names) if self.names else 'Unknown'}")
 
-            self.predictor = Predictor('yuan0517.pt', self.device)
+            self.predictor = Predictor('yuan0517.pt', 'cpu')
             print("✅ 分割模型 yuan0517.pt 加载成功")
 
             ## self.model_w = YOLO('fruit.pt')
@@ -361,10 +361,10 @@ class new_thread(QThread):
                     ##     print("❌ 水果检测模型未加载")
                     ##     continue
 
-                    results = self.model(img, augment=opt.augment, device=opt.device,
+                    results = self.model(img, augment=opt.augment, device='cpu',
                                         agnostic_nms=opt.agnostic_nms,
                                         classes=opt.classes, conf=opt.conf_thres, iou=opt.iou_thres,
-                                        half=self.half)
+                                        half=False)
                     ## results_w = self.model_w(img, augment=opt.augment, device=opt.device, half=self.half,
                     ##                        agnostic_nms=opt.agnostic_nms, classes=opt.classes,
                     ##                        conf=opt.conf_thres,
@@ -407,7 +407,7 @@ class new_thread(QThread):
                             cls_index = 7
                         if GPU_DEVICE:
                             xyxy = result.boxes[index].xyxy.cpu().numpy()[0]
-                            xyxy = torch.from_numpy(xyxy).cuda()
+                            xyxy = torch.from_numpy(xyxy)##.cuda()
                         else:
                             xyxy = result.boxes[index].xyxy.numpy()[0]
                         x1 = int(xyxy[0])
@@ -428,7 +428,7 @@ class new_thread(QThread):
                 ##         cls_index = else_dict[int(result_w.boxes.cls[index])]
                 ##         if GPU_DEVICE:
                 ##             xyxy = result_w.boxes[index].xyxy.cpu().numpy()[0]
-                ##             xyxy = torch.from_numpy(xyxy).cuda()
+                ##             xyxy = torch.from_numpy(xyxy)##.cuda()
                 ##         else:
                 ##             xyxy = result_w.boxes[index].xyxy.numpy()[0]
                 ##         x1 = int(xyxy[0])
@@ -703,7 +703,7 @@ if __name__ == '__main__':  # 程序的入口
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
     parser.add_argument('--conf-thres', type=float, default=0.1, help='object confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='IOU threshold for NMS')
-    parser.add_argument('--device', default='0', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')

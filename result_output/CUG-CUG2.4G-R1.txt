@@ -1,3 +1,9 @@
 START
+Goal_ID=CA001;Num=1
+Goal_ID=CB002;Num=1
+Goal_ID=CB003;Num=1
+Goal_ID=CB004;Num=1
+Goal_ID=CC001;Num=1
+Goal_ID=CC002;Num=3
 END
 
