@@ -1,4 +1,3 @@
-import random
 import sys
 import os
 from td_recognition import Ui_MainWindow  # 加载我们的布局
@@ -6,45 +5,37 @@ from PyQt5 import QtGui, QtCore
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
-from PyQt5.QtCore import QTimer, pyqtSignal
+from PyQt5.QtCore import pyqtSignal
 import cv2
 import argparse
 import numpy as np
 import pyorbbecsdk as orsdk
 import torch
-import torch.backends.cudnn as cudnn
+## import torch.backends.cudnn as cudnn
 import shutil
-import time
 from ultralytics import YOLO
 import socket
+import time
 
-address = '192.168.0.113'  # 修改为您的电脑IP地址
-GPU_DEVICE = True  # 禁用GPU，使用CPU模式
+address = '172.27.246.124'  # 修改为您的电脑IP地址
+GPU_DEVICE = False  # 禁用GPU，使用CPU模式
 
 last_number = []
 for i in range(10):
     last_number.append(0)
 # 识别时间
-detect_time = [14, 14, 14]
+detect_time = [16, 16, 16]
 
 # #待转向中间的间隔时间
-sleep_time = 4
+sleep_time = 9
 
 paper = 0.01
 
 ground_dis = 0.2
 
+# 0 值阈值
 SAT_NUM = 0.9
-# 误判斜率
-xielv = 1
-# 轮数 这里只能取 2，4
 
-
-# 删除平面中离群点的阈值
-num_p = 120
-
-# 删除拟合平面的阈值
-num_m = 101
 # 统计个数
 # 单轮的物品个数
 number = []
@@ -54,30 +45,20 @@ for i in range(10):
     one_round.append(0)
 myList = [([0] * 100) for i in range(10)]
 
-# 物品基准置信度
-base_conf = {0: 0.2, 1: 0.2, 2: 0.2, 3: 0.2, 4: 0.25, 5: 0.4,
-            6: 0.2, 7: 0.6, 8: 0.5, 9: 0.7}
-# 物品期望数量
-expect_num = {0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1,
-            6: 1, 7: 1, 8: 1, 9: 1}
-conf_shift = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0,
-            6: 0, 7: 0, 8: 0, 9: 0}
-# 置信度阈值
-conf_limit = [0.2, 0.7]
-# conf_shift = 0.00
-# conf_step = 0.05
+# 对于某物品 单独置信度阈值
+radio = [[0.5, 0.25, 0.5, 0.25],
+         [0.5, 0.5, 0.25, 0.75],
+         [0.25, 0.75, 0.5, 0.5],
+         [0.5, 0.5, 0.5, 0.25],
+         [0.5, 0.5, 0.5, 0.4]]
 
 data = {0: 'CA001', 1: 'CA002', 2: 'CB001', 3: 'CB002', 4: 'CC001', 5: 'CC002', 6: 'CD001', 7: 'CD002',
         8: 'W001', 9: 'W002'}
 rgb_dict = {0: (255, 0, 0), 1: (0, 255, 0), 2: (0, 0, 255), 3: (255, 255, 0), 4: (255, 0, 255), 5: (0, 255, 255),
             6: (128, 0, 0), 7: (0, 128, 0), 8: (0, 0, 128), 9: (128, 128, 0)}
-elseObject = [12, 13, 14, 15]
-else_dict = {0: 12, 1: 13, 2: 14, 3: 15}
+elseObject = [6, 7, 8, 9]
+## else_dict = {0: 6, 1: 7, 2: 8, 3: 9}
 client = socket.socket()
-
-
-
-is_client = False
 
 
 def check_socket_connection(host, port):
@@ -95,6 +76,9 @@ def check_socket_connection(host, port):
         # 如果连接失败，输出连接错误信息
         print(f"Socket connection to {host}:{port} failed: {e}")
         return False
+
+
+is_client = False
 
 
 def adaptive_histogram_equalization_color(image_np, clip_limit=2.0, tile_grid_size=(8, 8)):
@@ -157,21 +141,8 @@ class Protocol:
         self.add_str(con)
 
 
-class new_thread_(QThread):
-
-    def __init__(self, Window):
-        super(new_thread_, self).__init__()
-        self.window = Window
-
-    def run(self):
-        time.sleep(sleep_time)
-        self.window.thread_run = False
-
-
 class Predictor:
     def __init__(self, model_path, device, conf_thres=0.25, iou_thres=0.45, max_det=100):
-        # Load model
-        # self.segment_model = YOLO(model_path, device=device, dnn=False, data='', fp16=False)
         self.segment_model = YOLO(model_path)
         self.device = device
         self.conf_thres = conf_thres
@@ -180,20 +151,32 @@ class Predictor:
 
     def predict(self, im0, times):
         imgsz = (640, 480)
-        results = self.segment_model(im0, device=self.device, conf=self.conf_thres, iou=self.iou_thres, half=False,
+        results = self.segment_model(im0, device='cpu', conf=0.25, iou=self.iou_thres, half=False,
                                      max_det=self.max_det)
         max_conf = -1
         masks = [[0 for _ in range(640)] for _ in range(480)]
         masks = np.array(masks)
+
         for r in results:
             if r.masks is None:
                 masks = [[0 for _ in range(640)] for _ in range(480)]
                 masks = np.array(masks)
                 masks[160:320, 220:420] = 1
                 if GPU_DEVICE:
-                    masks = torch.from_numpy(masks).cuda()
+                    masks = torch.from_numpy(masks)
                 return masks
             mask_data = r.masks.data
+            confs = r.boxes.conf
+            # for index in range(0, len(confs)):
+            #     conf = confs[index]
+            #     data = mask_data[index]
+            #     if conf > max_conf:
+            #         max_conf = conf
+            #         if GPU_DEVICE:
+            #             masks = data.cpu().numpy()
+            #             masks = torch.from_numpy(masks)##.cuda()
+            #         else:
+            #             masks = data.numpy()
             center = 320
             min_distance = 640
             for index in range(len(r.masks)):
@@ -204,14 +187,8 @@ class Predictor:
                     # max_conf = conf
                     min_distance = dis
                     if GPU_DEVICE:
-                        im0 = r.orig_img
                         masks = data.cpu().numpy()
-                        if times <= 2:
-                            output = 'mask_out' + str(times) + '.jpg'
-                            mask = masks.astype(np.uint8)
-                            masked_image = cv2.bitwise_and(im0, im0, mask=mask)
-                            cv2.imwrite(output, masked_image)
-                        masks = torch.from_numpy(masks).cuda()
+                        masks = torch.from_numpy(masks)##.cuda()
                     else:
                         masks = data.numpy()
             return masks
@@ -234,6 +211,7 @@ class new_thread(QThread):
     update_label = pyqtSignal(str)  # 更新标签信号
     update_result = pyqtSignal(str)  # 更新结果信号
     show_start_button = pyqtSignal(bool)  # 显示开始按钮信号
+    detection_finished = pyqtSignal()  # 检测完成信号
 
     def __init__(self, Window):
         super(new_thread, self).__init__()
@@ -243,6 +221,7 @@ class new_thread(QThread):
         self.use_orbbec = False  # 标记是否使用Orbbec相机
         self.pipeline = None
         self.cap = None
+        self.should_detect = True  # 控制是否应该开始检测
 
         # 首先尝试初始化Orbbec相机
         try:
@@ -261,24 +240,13 @@ class new_thread(QThread):
 
             # 开始流式传输
             profile = self.pipeline.start(config)
+            # 修改相机内参
+            config.set_align_mode(orsdk.OBAlignMode.HW_MODE)
             self.use_orbbec = True
-            print("✅ 成功连接Orbbec相机")
-
-            # 预热相机，清空初始缓冲区
-            print("🔄 正在预热相机...")
-            for i in range(10):
-                try:
-                    frames = self.pipeline.wait_for_frames(50)
-                    if frames:
-                        color_frame = frames.get_color_frame()
-                        if color_frame:
-                            break
-                except:
-                    pass
-            print("✅ 相机预热完成")
+            print("√ 成功连接Orbbec相机")
 
         except Exception as e:
-            print(f"Orbbec相机连接失败: {e}")
+            print(f"× Orbbec相机连接失败: {e}")
             print("切换到电脑自带摄像头...")
 
             # 如果Orbbec相机失败，使用普通摄像头
@@ -288,125 +256,75 @@ class new_thread(QThread):
             self.cap.set(cv2.CAP_PROP_FPS, 30)
 
             if not self.cap.isOpened():
-                print("错误：无法打开电脑摄像头")
+                print("× 错误：无法打开电脑摄像头")
                 return
             else:
-                print("成功连接电脑摄像头")
+                print("√ 成功连接电脑摄像头")
 
-        cudnn.benchmark = True
+        ## cudnn.benchmark = True
 
         out, source, weights, view_img, save_txt, imgsz = \
             opt.output, opt.source, opt.weights, opt.view_img, opt.save_txt, opt.img_size
         webcam = source == '0' or source.startswith('rtsp') or source.startswith('http') or source.endswith('.txt')
 
         # 初始化相关参数
-        # set_logging()
-        # 获取脚本所在目录，确保模型文件路径正确
-        import os
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-
-        self.device = opt.device
+        self.device = 'cpu'  # 强制使用CPU设备
         if os.path.exists(out):
             shutil.rmtree(out)  # delete output folder
         os.makedirs(out)  # make new output folder
-        self.half = self.device != 'cpu'  # half precision only supported on CUDA
+        self.half = False  # 强制使用CPU模式，禁用半精度
 
-        # 初始化模型
-        self.init_model()
+        # 加载yolo模型
+        try:
+            print("正在加载YOLO模型...")
+            self.model = YOLO('best.pt')
+            print("√ 主检测模型 best.pt 加载成功")
 
-        # Get names and colors
-        if self.model is not None:
+            # Get names and colors
             self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
             self.colors = [[np.random.randint(0, 255) for _ in range(3)] for _ in range(len(self.names))]
-        else:
-            self.names = {}
-            self.colors = []
+            print(f"模型类别数: {len(self.names) if self.names else 'Unknown'}")
 
-        predictor_path = os.path.join(script_dir, 'final0518seg.pt')
-        self.predictor = Predictor(predictor_path, self.device)
-        self.predictor2 = Predictor(predictor_path, self.device)
+            self.predictor = Predictor('yuan0517.pt', 'cpu')
+            print("√ 分割模型 yuan0517.pt 加载成功")
 
-        fruit_model_path = os.path.join(script_dir, 'fruit.pt')
-        self.model_w = YOLO(fruit_model_path)
+            ## self.model_w = YOLO('fruit.pt')
+            ## print("√ 水果检测模型 fruit.pt 加载成功")
 
-    def init_model(self):
-        """初始化YOLO模型和相关参数"""
-        try:
-            # 获取脚本所在目录，确保模型文件路径正确
-            import os
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-
-            # 设置输出目录
-            out = 'output'
-            if os.path.exists(out):
-                shutil.rmtree(out)
-            os.makedirs(out, exist_ok=True)
-
-            # 初始化设备参数
-            self.device = 'cuda' if GPU_DEVICE and torch.cuda.is_available() else 'cpu'
-
-            # 加载yolo模型
-            model_path = os.path.join(script_dir, 'best518s.pt')
-            if os.path.exists(model_path):
-                self.model = YOLO(model_path)
-                print("✅ 主YOLO模型加载成功!")
-            else:
-                # 尝试加载其他可用的模型
-                model_files = ['best.pt', 'yolov5s.pt']
-                self.model = None
-                for model_file in model_files:
-                    full_path = os.path.join(script_dir, model_file)
-                    if os.path.exists(full_path):
-                        self.model = YOLO(full_path)
-                        print(f"✅ 备用模型 {model_file} 加载成功!")
-                        break
-                if self.model is None:
-                    print("❌ 未找到可用的YOLO模型文件")
         except Exception as e:
-            print(f"❌ 模型初始化失败: {e}")
+            print(f"× 模型加载失败: {e}")
             self.model = None
+            ## self.model_w = None
 
     def run(self):
-        global conf_shift
+        max_times = 15
         times = 0
-        seconds_per = 2
-        # conf_shift = 0.00
-        conf_step = 0.05
-        start = time.time()
+        seconds_per = 1
         print('show camera scene....')
         is_client = check_socket_connection(address, 6666)
 
         # 发射信号通知UI模型加载完成，准备开始检测
-        self.update_label.emit("✅ 模型加载完成，准备开始检测...")
+        self.update_label.emit("√ 模型加载完成，准备开始检测...")
         self.show_start_button.emit(False)  # 隐藏开始按钮
 
         # 等待一秒让用户看到状态
         time.sleep(1)
 
         # 直接开始检测
+        self.should_detect = True
         self.window.thread_run = False  # 设置为检测模式
-
-        # 获取脚本所在目录
-        import os
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        p_image_path = os.path.join(script_dir, 'P_image_51.jpg')
-        masks = self.predictor.predict(p_image_path, 3)
-        masks = self.predictor2.predict(p_image_path, 4)
 
         while True:
             if self.use_orbbec:
-                # 使用Orbbec相机获取图像，减少等待时间避免缓冲区堆积
-                try:
-                    frames = self.pipeline.wait_for_frames(50)  # 减少等待时间从100ms到50ms
-                    color_frame = frames.get_color_frame()
+                # 使用Orbbec相机获取图像
+                frames = self.pipeline.wait_for_frames(100)
+                camera_param = self.pipeline.get_camera_param()
 
-                    if not color_frame:
-                        continue
-                    # 将图像转换为numpy数组类型
-                    color_image = self.color_frame_to_bgr_img0(color_frame)
-                except Exception as e:
-                    print(f"相机帧获取失败: {e}")
+                color_frame = frames.get_color_frame()
+                if not color_frame:
                     continue
+                # 将图像转换为numpy数组类型
+                color_image = self.color_frame_to_bgr_img0(color_frame)
             else:
                 # 使用普通摄像头获取图像
                 ret, color_image = self.cap.read()
@@ -419,66 +337,72 @@ class new_thread(QThread):
                 color_image = cv2.resize(color_image, (640, 480))
 
             img_cpy = color_image.copy()
-            # depth_image_cpy = depth_image.copy()
             img = color_image.copy()
-            # img0 = np.expand_dims(depth_image_cpy, axis=-1)
-            # img0 = np.repeat(img0, 3, axis=-1)
             img0 = img
 
-            # 进行检测
-            if not self.window.thread_run:
+            # 如果需要检测，则进行检测
+            if self.should_detect:
                 with torch.no_grad():
                     # 预测，返回的结果包括识别的物体类别，框的位置，和该类物品的概率
                     if times % seconds_per != 0:
                         times += 1
                         continue
-                    if self.model is not None:
-                        results = self.model(img, conf=0.1, device=self.device)
-                    else:
-                        results = []
+                    # 使用普通检测代替跟踪 (避免lap依赖问题)
+                    print(f"开始YOLO检测，置信度阈值: {opt.conf_thres}")
 
-                    if hasattr(self, 'model_w') and self.model_w is not None:
-                        results_w = self.model_w(img, conf=0.1, device=self.device)
-                    else:
-                        results_w = []
+                    # 检查模型是否加载成功
+                    if self.model is None:
+                        print("× 主检测模型未加载")
+                        continue
+                    ## if self.model_w is None:
+                    ##     print("× 水果检测模型未加载")
+                    ##     continue
+
+                    results = self.model(img, augment=opt.augment, device='cpu',
+                                        agnostic_nms=opt.agnostic_nms,
+                                        classes=opt.classes, conf=opt.conf_thres, iou=opt.iou_thres,
+                                        half=False)
+                    ## results_w = self.model_w(img, augment=opt.augment, device=opt.device, half=self.half,
+                    ##                        agnostic_nms=opt.agnostic_nms, classes=opt.classes,
+                    ##                        conf=opt.conf_thres,
+                    ##                        iou=opt.iou_thres)
 
                     result = results[0]
-                    result_w = results_w[0]
+                    ## result_w = results_w[0]
+
+                    # 调试信息
+                    if hasattr(result, 'boxes') and result.boxes is not None:
+                        print(f"主模型检测到 {len(result.boxes)} 个目标")
+                        if len(result.boxes) > 0:
+                            print(f"   置信度范围: {result.boxes.conf.min():.3f} - {result.boxes.conf.max():.3f}")
+                    else:
+                        print("× 主模型未检测到任何目标")
+
+                    ## if hasattr(result_w, 'boxes') and result_w.boxes is not None:
+                    ##     print(f"水果模型检测到 {len(result_w.boxes)} 个目标")
+                    ## else:
+                    ##     print("× 水果模型未检测到任何目标")
                 if times == 0:
-                    # start = time.time()
-                    self.window.TurningImg.setVisible(False)
                     self.detect_Flag = True
                     self.detect_new_thread = detect_Flag_thread(self)
                     self.detect_new_thread.start()
-                    if self.round == 0:
-                        p_start = Protocol()
-                        p_start.pack_send(0, 'CUG2.4G')
-                        if is_client:
-                            client.send(p_start.bs)
-                    if self.round < 2:
-                        masks = self.predictor2.predict(img0, self.round)
-                    else:
-                        masks = self.predictor.predict(img0, self.round)
+                    p_start = Protocol()
+                    p_start.pack_send(0, 'CUG2.4G')
+                    if is_client:
+                        client.send(p_start.bs)
 
-                self.window.ResultLabel.setText("")
+                masks = self.predictor.predict(img0, times)
                 one_round.clear()
                 for i in range(10):
                     one_round.append(0)
-                flag1 = False
-                flag2 = False
                 if result is not None or len(result) != 0:
-                    flag1 = True
                     for index in range(len(result.boxes.cls)):
                         cls_index = int(result.boxes.cls[index])
                         if cls_index in elseObject:
                             continue
-                        #if cls_index == 16:
-                            #cls_index = 7
-                        if result.boxes.conf[index] < (base_conf[cls_index] + conf_shift[cls_index]):
-                            continue
                         if GPU_DEVICE:
                             xyxy = result.boxes[index].xyxy.cpu().numpy()[0]
-                            xyxy = torch.from_numpy(xyxy).cuda()
+                            xyxy = torch.from_numpy(xyxy)##.cuda()
                         else:
                             xyxy = result.boxes[index].xyxy.numpy()[0]
                         x1 = int(xyxy[0])
@@ -494,142 +418,89 @@ class new_thread(QThread):
                                 one_round[item] += 1
                                 img = draw_detection_box(img, xyxy, data[item], result.boxes.conf[index],
                                                          rgb_dict[item])
-                if result_w is not None or len(result_w) != 0:
-                    flag2 =True
-                    for index in range(len(result_w.boxes.cls)):
-                        cls_index = else_dict[int(result_w.boxes.cls[index])]
-                        if result_w.boxes.conf[index] < (base_conf[cls_index] + conf_shift[cls_index]):
-                            continue
-                        if GPU_DEVICE:
-                            xyxy = result_w.boxes[index].xyxy.cpu().numpy()[0]
-                            xyxy = torch.from_numpy(xyxy).cuda()
-                        else:
-                            xyxy = result_w.boxes[index].xyxy.numpy()[0]
-                        x1 = int(xyxy[0])
-                        y1 = int(xyxy[1])
-                        x2 = int(xyxy[2])
-                        y2 = int(xyxy[3])
-                        x_center = int((x1 + x2) / 2)
-                        y_center = int(0.5 * y2 + 0.5 * y1)
-
-                        if len(masks) > 0:
-                            if masks[y_center][x_center] > 0:
-                                item = cls_index
-                                one_round[item] += 1
-                                img = draw_detection_box(img, xyxy, data[item], result_w.boxes.conf[index],
-                                                         rgb_dict[item])
-                if not flag1 and not flag2:
+                ## elif result_w is not None or len(result_w) != 0:
+                ##     for index in range(len(result_w.boxes.cls)):
+                ##         cls_index = else_dict[int(result_w.boxes.cls[index])]
+                ##         if GPU_DEVICE:
+                ##             xyxy = result_w.boxes[index].xyxy.cpu().numpy()[0]
+                ##             xyxy = torch.from_numpy(xyxy)##.cuda()
+                ##         else:
+                ##             xyxy = result_w.boxes[index].xyxy.numpy()[0]
+                ##         x1 = int(xyxy[0])
+                ##         y1 = int(xyxy[1])
+                ##         x2 = int(xyxy[2])
+                ##         y2 = int(xyxy[3])
+                ##         x_center = int((x1 + x2) / 2)
+                ##         y_center = int(0.5 * y2 + 0.5 * y1)
+                ##
+                ##         if len(masks) > 0:
+                ##             if masks[y_center][x_center] > 0:
+                ##                 item = cls_index
+                ##                 one_round[item] += 1
+                ##                 img = draw_detection_box(img, xyxy, data[item], result_w.boxes.conf[index],
+                ##                                          rgb_dict[item])
+                else:
                     times += 1
                     continue
 
-                # 在平面上画出物品
-                img_display = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                img_display = QImage(img_display, img_display.shape[1], img_display.shape[0], img_display.shape[1] * 3,
-                                     QImage.Format_RGB888)
-                img_display = QtGui.QPixmap(img_display).scaled(640, 480)
-                self.window.ImgLabel.setPixmap(img_display)
-                if not GPU_DEVICE:
-                    output_path = 'mask_out/mask' + str(times) + '.jpg'
-                    mask = masks.astype(np.uint8)
-                    masked_image = cv2.bitwise_and(img, img, mask=mask)
-                    cv2.imwrite(output_path, masked_image)
-                self.window.label.setText("🔍 正在检测中...")
-                for k in range(10):
-                    if one_round[k] > expect_num[k]:
-                        t = (one_round[k] - expect_num[k]) / expect_num[k]
-                        ra = random.random()
-                        if ra < t:
-                            conf_shift[k] += conf_step
-                        if (base_conf[k] + conf_shift[k]) > conf_limit[1]:
-                            conf_shift[k] = conf_limit[1] - base_conf[k]
-                    if one_round[k] < expect_num[k]:
-                        t = -(one_round[k] - expect_num[k]) / expect_num[k]
-                        ra = random.random()
-                        if ra < t:
-                            conf_shift[k] -= conf_step
-                        if (base_conf[k] + conf_shift[k]) < conf_limit[0]:
-                            conf_shift[k] = conf_limit[0] + base_conf[k]
+                # 发射信号更新UI
+                self.update_image.emit(img)
+                self.update_label.emit("正在检测中...")
+
                 for k in range(10):
                     myList[k][one_round[k]] = myList[k][one_round[k]] + 1
-                times += 1
 
-                if self.detect_Flag == False:
+                if times == max_times:
                     for i in range(10):
                         max_ = 0
                         k = 0
-                        if self.round < 2:
-                            if myList[i][0] < int(times / seconds_per) - 3:
-                                k = 1
-                        else:
-                            if myList[i][0] < int(times / seconds_per) - 20:
-                                k = 1
-                        for j in range(5, k-1,-1):
-                            print(i, j, myList[i][j])
-                            if 0 < myList[i][j] and myList[i][j] > times / seconds_per * 0.1:
+                        if myList[i][0] < times / seconds_per * SAT_NUM:
+                            k = 1
+                        for j in range(5, k - 1, -1):
+                            # print(i, j, myList[i][j])
+                            if 0 < myList[i][j] and myList[i][j] > 1:
                                 number[i] = j
                                 break
-                    for i in range(10):
-                        last_number[i] = last_number[i] + number[i]
-                        if last_number[i] > 5:
-                            last_number[i] = 5;
-                    if self.round < 2:
-                        p_shift = Protocol()
-                        p_shift.pack_send(3, "0000")
-                        if is_client:
-                            client.send(p_shift.bs)
-                        # 发射信号更新UI
+
+                if times >= max_times:
+                    # 检测完成，停止检测并显示结果
+                    self.should_detect = False
+                    self.process_detection_results(is_client)
+
+                    # 等待重新检测指令
+                    while not self.should_detect:
+                        # 显示最后一帧图像
                         self.update_image.emit(img)
-                        self.update_label.emit("🔄 准备转向...")
-                        # 显示转向图像
-                        if hasattr(self.window, 'TurningImg'):
-                            self.window.TurningImg.setVisible(True)
-                        self.window.thread_run = True
-                        new_thread = new_thread_(self.window)
-                        new_thread.start()
+                        time.sleep(0.1)
 
-                    else:
-                        self.update_label.emit("✅ 检测完成!")
-
-                    # 显示当前轮次结果
-                    pri = []
-                    result_str = ''
-                    for aa in range(10):
-                        if number[aa] != 0:
-                            st = "目标ID：" + str(data[aa]) + "   数量：" + str(number[aa])
-                            pri.append(st)
-                    for aa in range(len(pri)):
-                        result_str += pri[aa]
-                        result_str += '\n'
-
-                    # 发射信号更新结果显示
-                    self.update_result.emit(f"第 {self.round + 1} 轮检测结果:\n{result_str}")
-
-                    self.round = self.round + 1
+                    # 重置检测参数
                     times = 0
-                    if self.round == 3:
-                        # 三轮检测完成，处理最终结果并退出
-                        self.process_final_results(is_client)
-                        return  # 直接结束run方法
+                    for i in range(10):
+                        number[i] = 0
+                        for j in range(100):
+                            myList[i][j] = 0
+                    continue
+                times += 1
             else:
-                # 显示摄像头画面（空闲状态）
+                # 如果不需要检测，只显示摄像头画面
                 self.update_image.emit(color_image)
-                self.update_label.emit("📷 摄像头预览")
-                time.sleep(0.05)  # 增加延时，减少帧率压力
+                self.update_label.emit("摄像头预览")
+                time.sleep(0.03)  # 控制帧率
 
-    def process_final_results(self, is_client):
-        """处理最终检测结果"""
+    def process_detection_results(self, is_client):
+        """处理检测结果"""
         # 发射信号更新UI
-        self.update_label.emit("✅ 检测完成!")
+        self.update_label.emit("√ 检测完成!")
 
         pri = []
         pri2 = []
         result_str = ''
         result_str2 = ''
         for aa in range(10):
-            if last_number[aa] != 0:
-                st = "目标ID：" + str(data[aa]) + "   数量：" + str(last_number[aa])
+            if number[aa] != 0:
+                st = "目标ID：" + str(data[aa]) + "   数量：" + str(number[aa])
                 pri.append(st)
-                st = "Goal_ID=" + str(data[aa]) + ";Num=" + str(last_number[aa])
+                st = "Goal_ID=" + str(data[aa]) + ";Num=" + str(number[aa])
                 pri2.append(st)
 
         for aa in range(len(pri)):
@@ -655,7 +526,7 @@ class new_thread(QThread):
             os.makedirs(result_dir, exist_ok=True)
 
             # 生成文件名
-            filename = os.path.join(result_dir, "CUG-CUG2.4G-R2.txt")
+            filename = os.path.join(result_dir, "CUG-CUG2.4G-R1.txt")
 
             # 写入结果文件
             with open(filename, 'w+', encoding='utf-8') as f:
@@ -663,19 +534,27 @@ class new_thread(QThread):
                 f.write(result_str2)
                 f.write('END' + os.linesep + '\n')
 
-            print(f"✅ 结果已保存到: {filename}")
+            print(f"√ 结果已保存到: {filename}")
         except Exception as e:
-            print(f"❌ 保存结果文件失败: {e}")
+            print(f"× 保存结果文件失败: {e}")
 
-        # 发射信号更新结果显示
+        # 发射信号更新结果显示和显示重新检测按钮
         self.update_result.emit(result_str)
-        self.update_label.emit("✅ 检测完成！程序即将退出...")
+        self.detection_finished.emit()
 
-        # cli
-        # self.window.ResultLabel.repaint()
+    def __del__(self):
+        """析构函数，释放摄像头资源"""
+        if hasattr(self, 'cap') and self.cap is not None:
+            self.cap.release()
+            print("普通摄像头资源已释放")
+        if hasattr(self, 'pipeline') and self.pipeline is not None:
+            try:
+                self.pipeline.stop()
+                print("Orbbec相机资源已释放")
+            except:
+                pass
 
     def color_frame_to_bgr_img0(self, frame):
-        '''将彩图数据帧转换为numpy格式的BGR彩图'''
         '''将彩图数据帧转换为numpy格式的BGR彩图'''
         width = frame.get_width()
         height = frame.get_height()
@@ -707,29 +586,14 @@ class new_thread(QThread):
         depth_image = cv2.normalize(depth_data, None, 0, 255, cv2.NORM_MINMAX, dtype=cv2.CV_8U)
         return depth_image
 
-    def __del__(self):
-        """析构函数，释放摄像头资源"""
-        if hasattr(self, 'cap') and self.cap is not None:
-            self.cap.release()
-            print("普通摄像头资源已释放")
-        if hasattr(self, 'pipeline') and self.pipeline is not None:
-            try:
-                self.pipeline.stop()
-                print("Orbbec相机资源已释放")
-            except:
-                pass
-
 
 class UsingTest(QMainWindow, Ui_MainWindow):
     def __init__(self, *args, **kwargs):
         super(UsingTest, self).__init__(*args, **kwargs)
         self.setupUi(self)  # 初始化u
         self._translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle('🤖 RoboCup 3D识别 - v2025')
-        try:
-            self.setWindowIcon(QIcon("icon/cug.ico"))
-        except:
-            pass
+        self.setWindowTitle('RoboCup 3D识别 - v2025')
+        self.setWindowIcon(QIcon("icon/cug.ico"))
         self.thread_run = True
         self.new_thread = new_thread(self)
 
@@ -738,21 +602,14 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         self.new_thread.update_label.connect(self.update_status_label)
         self.new_thread.update_result.connect(self.update_result_text)
         self.new_thread.show_start_button.connect(self.StartButton.setVisible)
+        self.new_thread.detection_finished.connect(self.on_detection_finished)
 
-        # 隐藏开始按钮，因为程序会自动开始检测
+        # 修改按钮文本为"重新检测"并隐藏
+        self.StartButton.setText("重新检测")
         self.StartButton.setVisible(False)
 
         self.new_thread.start()
-
-        # 连接新增按钮的信号 (按钮已隐藏)
-        # self.cameraButton.clicked.connect(self.toggle_camera)
-        # self.settingsButton.clicked.connect(self.show_settings)
-
-        # 延迟启动相机测试，确保相机线程完全初始化
-        self.camera_test_timer = QTimer()
-        self.camera_test_timer.timeout.connect(self.auto_start_camera_test)
-        self.camera_test_timer.setSingleShot(True)
-        self.camera_test_timer.start(1000)  # 1秒后启动相机测试
+        self.StartButton.clicked.connect(self.restart_detection)
 
     def update_camera_image(self, img):
         """更新摄像头图像显示"""
@@ -770,87 +627,17 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         """更新结果显示"""
         self.ResultLabel.setText(text)
 
+    def on_detection_finished(self):
+        """检测完成后的处理"""
+        self.StartButton.setVisible(True)  # 显示重新检测按钮
+        self.update_status_label("√ 检测完成！点击下方按钮重新检测")
 
-
-    def auto_start_camera_test(self):
-        """自动启动相机测试，显示实时画面"""
-        try:
-            # 设置状态提示
-            self.statusbar.showMessage("🔍 正在自动检测相机设备...")
-            self.label.setText("📹 正在启动相机预览...")
-
-            # 等待相机线程完全初始化
-            if not hasattr(self.new_thread, 'use_orbbec'):
-                # 如果相机线程还没有初始化完成，再等待一下
-                self.camera_test_timer.start(500)  # 再等500ms
-                return
-
-            # 检查相机线程状态
-            if hasattr(self.new_thread, 'use_orbbec'):
-                if self.new_thread.use_orbbec:
-                    self.statusbar.showMessage("✅ Orbbec 3D相机已连接，实时预览已启动")
-                    camera_info = """
-🎥 相机信息:
-• 设备类型: Orbbec 3D相机
-• 分辨率: 640x480
-• 深度检测: 支持
-• 状态: 正常运行
-
-📊 系统状态:
-• GPU加速: """ + ("启用" if GPU_DEVICE else "禁用") + """
-• AI模型: 已加载
-• 实时预览: 运行中
-                    """
-                else:
-                    self.statusbar.showMessage("✅ USB摄像头已连接，实时预览已启动")
-                    camera_info = """
-🎥 相机信息:
-• 设备类型: USB摄像头
-• 分辨率: 640x480
-• 帧率: 30fps
-• 状态: 正常运行
-
-📊 系统状态:
-• GPU加速: """ + ("启用" if GPU_DEVICE else "禁用") + """
-• AI模型: 已加载
-• 实时预览: 运行中
-                    """
-
-                # 显示相机信息
-                self.ResultLabel.setText(camera_info)
-                self.label.setText("📹 相机预览运行中 - 点击'开始检测'进行目标识别")
-
-                # 启用开始按钮
-                self.StartButton.setVisible(True)
-                self.StartButton.setEnabled(True)
-
-            else:
-                # 相机初始化失败的情况
-                self.statusbar.showMessage("❌ 相机连接失败")
-                self.label.setText("❌ 相机连接失败")
-                error_info = """
-❌ 相机连接失败
-
-🔧 请检查:
-• USB连接是否正常
-• 相机驱动是否安装
-• 设备是否被其他程序占用
-• Orbbec SDK是否正确安装
-
-💡 解决方案:
-1. 重新插拔USB连接
-2. 关闭其他使用相机的程序
-3. 重启应用程序
-4. 检查设备管理器中的相机设备
-                """
-                self.ResultLabel.setText(error_info)
-
-        except Exception as e:
-            self.statusbar.showMessage(f"❌ 相机测试失败: {str(e)}")
-            self.label.setText("❌ 相机测试失败")
-            print(f"相机自动测试失败: {e}")
-
-
+    def restart_detection(self):
+        """重新开始检测"""
+        self.StartButton.setVisible(False)  # 隐藏重新检测按钮
+        self.ResultLabel.setText("")  # 清空结果显示
+        self.new_thread.should_detect = True  # 设置检测标志
+        self.update_status_label("重新开始检测...")
 
     def OpenImage(self):
         # imgName, imgType = QFileDialog.getOpenFileName(self, "打开图片", "", "*.jpg;;*.png;;All Files(*)")
@@ -858,7 +645,8 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         # self.label.setPixmap(jpg)
         self.ImgLabel.setPixmap(jpg)
         self.ResultLabel.setText('hello world!')
-        self.label.setText("🔍 正在检测中...")
+        self.label.setText(self._translate("MainWindow",
+                                           "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">检测中</span></p></body></html>"))
 
     # letterbox变换  用于不改变原图像纵横比进行resize
     def letterbox(self, img, new_shape=(640, 640), color=(114, 114, 114), auto=True, scaleFill=False, scaleup=True):
@@ -897,8 +685,8 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         pass
 
     def StartButton_clicked(self):
-        """原来的按钮点击方法，现在已经不需要了"""
-        pass
+        """原来的按钮点击方法，现在重定向到重新检测"""
+        self.restart_detection()
 
 
 if __name__ == '__main__':  # 程序的入口
@@ -908,9 +696,9 @@ if __name__ == '__main__':  # 程序的入口
     parser.add_argument('--source', type=str, default='inference/images', help='source')  # file/folder, 0 for webcam
     parser.add_argument('--output', type=str, default='inference/output', help='output folder')  # output folder
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
-    parser.add_argument('--conf-thres', type=float, default=0.5, help='object confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.3, help='IOU threshold for NMS')
-    parser.add_argument('--device', default='0', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
+    parser.add_argument('--conf-thres', type=float, default=0.1, help='object confidence threshold')
+    parser.add_argument('--iou-thres', type=float, default=0.5, help='IOU threshold for NMS')
+    parser.add_argument('--device', default='cpu', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='display results')
     parser.add_argument('--save-txt', action='store_true', help='save results to *.txt')
     parser.add_argument('--classes', nargs='+', type=int, help='filter by class: --class 0, or --class 0 2 3')

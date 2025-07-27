@@ -17,7 +17,7 @@ from ultralytics import YOLO
 import socket
 import time
 
-address = '192.168.0.113'  # 修改为您的电脑IP地址
+address = '172.27.246.124'  # 修改为您的电脑IP地址
 GPU_DEVICE = False  # 禁用GPU，使用CPU模式
 
 last_number = []
