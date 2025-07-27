@@ -24,7 +24,7 @@ last_number = []
 for i in range(10):
     last_number.append(0)
 # 识别时间
-detect_time = [16, 16, 16]
+detect_time = [12, 12, 12]
 
 # #待转向中间的间隔时间
 sleep_time = 9
@@ -592,7 +592,7 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         super(UsingTest, self).__init__(*args, **kwargs)
         self.setupUi(self)  # 初始化u
         self._translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle('RoboCup 3D识别 - v2025')
+        self.setWindowTitle('RoboCup 3D识别 第 2 轮 - v2025')
         self.setWindowIcon(QIcon("icon/cug.ico"))
         self.thread_run = True
         self.new_thread = new_thread(self)
