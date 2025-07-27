@@ -1,5 +1,3 @@
 START
-Goal_ID=CC001;Num=4
-Goal_ID=CC002;Num=3
 END
 
