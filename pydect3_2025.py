@@ -246,11 +246,11 @@ class new_thread(QThread):
             # 修改相机内参
             config.set_align_mode(orsdk.OBAlignMode.HW_MODE)
             self.use_orbbec = True
-            print("✅ 成功连接Orbbec相机")
+            print("√ 成功连接Orbbec相机")
 
         except Exception as e:
-            print(f"❌ Orbbec相机连接失败: {e}")
-            print("🔄 切换到电脑自带摄像头...")
+            print(f"× Orbbec相机连接失败: {e}")
+            print("切换到电脑自带摄像头...")
 
             # 如果Orbbec相机失败，使用普通摄像头
             self.cap = cv2.VideoCapture(0)  # 0表示默认摄像头
@@ -259,10 +259,10 @@ class new_thread(QThread):
             self.cap.set(cv2.CAP_PROP_FPS, 30)
 
             if not self.cap.isOpened():
-                print("❌ 错误：无法打开电脑摄像头")
+                print("× 错误：无法打开电脑摄像头")
                 return
             else:
-                print("✅ 成功连接电脑摄像头")
+                print("√ 成功连接电脑摄像头")
 
         ## cudnn.benchmark = True
 
@@ -279,35 +279,35 @@ class new_thread(QThread):
 
         # 加载yolo模型
         try:
-            print("🔄 正在加载YOLO模型...")
+            print("正在加载YOLO模型...")
             self.model = YOLO('det300.pt')
-            print("✅ 主检测模型 det300.pt 加载成功")
+            print("√ 主检测模型 det300.pt 加载成功")
 
             # Get names and colors
             self.names = self.model.module.names if hasattr(self.model, 'module') else self.model.names
             self.colors = [[np.random.randint(0, 255) for _ in range(3)] for _ in range(len(self.names))]
-            print(f"📋 模型类别数: {len(self.names) if self.names else 'Unknown'}")
+            print(f"模型类别数: {len(self.names) if self.names else 'Unknown'}")
 
             self.predictor = Predictor('yuan0517.pt', 'cpu')
-            print("✅ 分割模型 yuan0517.pt 加载成功")
+            print("√ 分割模型 yuan0517.pt 加载成功")
 
             ## self.model_w = YOLO('fruit.pt')
-            ## print("✅ 水果检测模型 fruit.pt 加载成功")
+            ## print("√ 水果检测模型 fruit.pt 加载成功")
 
         except Exception as e:
-            print(f"❌ 模型加载失败: {e}")
+            print(f"× 模型加载失败: {e}")
             self.model = None
             ## self.model_w = None
 
     def run(self):
-        max_times = 50
+        max_times = 15
         times = 0
         seconds_per = 1
         print('show camera scene....')
         is_client = check_socket_connection(address, 6666)
 
         # 发射信号通知UI模型加载完成，准备开始检测
-        self.update_label.emit("✅ 模型加载完成，准备开始检测...")
+        self.update_label.emit("√ 模型加载完成，准备开始检测...")
         self.show_start_button.emit(False)  # 隐藏开始按钮
 
         # 等待一秒让用户看到状态
@@ -351,14 +351,14 @@ class new_thread(QThread):
                         times += 1
                         continue
                     # 使用普通检测代替跟踪 (避免lap依赖问题)
-                    print(f"🔍 开始YOLO检测，置信度阈值: {opt.conf_thres}")
+                    print(f"开始YOLO检测，置信度阈值: {opt.conf_thres}")
 
                     # 检查模型是否加载成功
                     if self.model is None:
-                        print("❌ 主检测模型未加载")
+                        print("× 主检测模型未加载")
                         continue
                     ## if self.model_w is None:
-                    ##     print("❌ 水果检测模型未加载")
+                    ##     print("× 水果检测模型未加载")
                     ##     continue
 
                     results = self.model(img, augment=opt.augment, device='cpu',
@@ -375,16 +375,16 @@ class new_thread(QThread):
 
                     # 调试信息
                     if hasattr(result, 'boxes') and result.boxes is not None:
-                        print(f"📊 主模型检测到 {len(result.boxes)} 个目标")
+                        print(f"主模型检测到 {len(result.boxes)} 个目标")
                         if len(result.boxes) > 0:
                             print(f"   置信度范围: {result.boxes.conf.min():.3f} - {result.boxes.conf.max():.3f}")
                     else:
-                        print("❌ 主模型未检测到任何目标")
+                        print("× 主模型未检测到任何目标")
 
                     ## if hasattr(result_w, 'boxes') and result_w.boxes is not None:
-                    ##     print(f"📊 水果模型检测到 {len(result_w.boxes)} 个目标")
+                    ##     print(f"水果模型检测到 {len(result_w.boxes)} 个目标")
                     ## else:
-                    ##     print("❌ 水果模型未检测到任何目标")
+                    ##     print("× 水果模型未检测到任何目标")
                 if times == 0:
                     self.detect_Flag = True
                     self.detect_new_thread = detect_Flag_thread(self)
@@ -450,7 +450,7 @@ class new_thread(QThread):
 
                 # 发射信号更新UI
                 self.update_image.emit(img)
-                self.update_label.emit("🔍 正在检测中...")
+                self.update_label.emit("正在检测中...")
 
                 for k in range(20):
                     myList[k][one_round[k]] = myList[k][one_round[k]] + 1
@@ -489,13 +489,13 @@ class new_thread(QThread):
             else:
                 # 如果不需要检测，只显示摄像头画面
                 self.update_image.emit(color_image)
-                self.update_label.emit("📷 摄像头预览")
+                self.update_label.emit("摄像头预览")
                 time.sleep(0.03)  # 控制帧率
 
     def process_detection_results(self, is_client):
         """处理检测结果"""
         # 发射信号更新UI
-        self.update_label.emit("✅ 检测完成!")
+        self.update_label.emit("√ 检测完成!")
 
         pri = []
         pri2 = []
@@ -539,9 +539,9 @@ class new_thread(QThread):
                 f.write(result_str2)
                 f.write('END' + os.linesep + '\n')
 
-            print(f"✅ 结果已保存到: {filename}")
+            print(f"√ 结果已保存到: {filename}")
         except Exception as e:
-            print(f"❌ 保存结果文件失败: {e}")
+            print(f"× 保存结果文件失败: {e}")
 
         # 发射信号更新结果显示和显示重新检测按钮
         self.update_result.emit(result_str)
@@ -597,7 +597,7 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         super(UsingTest, self).__init__(*args, **kwargs)
         self.setupUi(self)  # 初始化u
         self._translate = QtCore.QCoreApplication.translate
-        self.setWindowTitle('🤖 RoboCup 3D识别 - v2025')
+        self.setWindowTitle('RoboCup 3D识别 - v2025')
         self.setWindowIcon(QIcon("icon/cug.ico"))
         self.thread_run = True
         self.new_thread = new_thread(self)
@@ -610,7 +610,7 @@ class UsingTest(QMainWindow, Ui_MainWindow):
         self.new_thread.detection_finished.connect(self.on_detection_finished)
 
         # 修改按钮文本为"重新检测"并隐藏
-        self.StartButton.setText("🔄 重新检测")
+        self.StartButton.setText("重新检测")
         self.StartButton.setVisible(False)
 
         self.new_thread.start()
@@ -635,14 +635,14 @@ class UsingTest(QMainWindow, Ui_MainWindow):
     def on_detection_finished(self):
         """检测完成后的处理"""
         self.StartButton.setVisible(True)  # 显示重新检测按钮
-        self.update_status_label("✅ 检测完成！点击下方按钮重新检测")
+        self.update_status_label("√ 检测完成！点击下方按钮重新检测")
 
     def restart_detection(self):
         """重新开始检测"""
         self.StartButton.setVisible(False)  # 隐藏重新检测按钮
         self.ResultLabel.setText("")  # 清空结果显示
         self.new_thread.should_detect = True  # 设置检测标志
-        self.update_status_label("🔄 重新开始检测...")
+        self.update_status_label("重新开始检测...")
 
     def OpenImage(self):
         # imgName, imgType = QFileDialog.getOpenFileName(self, "打开图片", "", "*.jpg;;*.png;;All Files(*)")

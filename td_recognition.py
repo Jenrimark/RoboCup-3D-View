@@ -31,7 +31,7 @@ class Ui_MainWindow(object):
                 padding: 5px;
             }
         """)
-        self.ImgLabel.setText("📹 摄像头画面")
+        self.ImgLabel.setText("摄像头画面")
         self.ImgLabel.setAlignment(Qt.AlignCenter)
         self.ImgLabel.setFont(QFont("Microsoft YaHei", 16, QFont.Bold))
         self.ImgLabel.setObjectName("ImgLabel")
@@ -48,7 +48,7 @@ class Ui_MainWindow(object):
                 font: bold 14px "Microsoft YaHei";
             }
         """)
-        self.TurningImg.setText("🔄\n转向中")
+        self.TurningImg.setText("转向中")
         self.TurningImg.setAlignment(Qt.AlignCenter)
         self.TurningImg.setScaledContents(True)
         self.TurningImg.setObjectName("TurningImg")
@@ -69,7 +69,7 @@ class Ui_MainWindow(object):
                 color: #2C3E50;
             }
         """)
-        self.ResultLabel.setText("🎯 检测结果将在这里显示...")
+        self.ResultLabel.setText("检测结果将在这里显示...")
         self.ResultLabel.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.ResultLabel.setWordWrap(True)
         self.ResultLabel.setObjectName("ResultLabel")
@@ -104,7 +104,7 @@ class Ui_MainWindow(object):
         # 新增标题标签
         self.titleLabel = QtWidgets.QLabel(self.centralwidget)
         self.titleLabel.setGeometry(QtCore.QRect(30, 10, 720, 40))
-        self.titleLabel.setText("🤖 RoboCup 3D 目标检测系统")
+        self.titleLabel.setText("RoboCup 3D 目标检测系统")
         self.titleLabel.setFont(QFont("Microsoft YaHei", 18, QFont.Bold))
         self.titleLabel.setStyleSheet("""
             QLabel {
@@ -173,7 +173,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "🤖 RoboCup 3D 目标检测系统"))
-        self.StartButton.setText(_translate("MainWindow", "🚀 开始检测"))
-        self.label.setText(_translate("MainWindow", "💤 系统空闲 - 等待开始检测"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "RoboCup 3D 目标检测系统"))
+        self.StartButton.setText(_translate("MainWindow", "开始检测"))
+        self.label.setText(_translate("MainWindow", "系统空闲 - 等待开始检测"))
         self.menu.setTitle(_translate("MainWindow", "v2025"))
