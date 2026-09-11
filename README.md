@@ -1,6 +1,6 @@
 # RoboCup-3D-View
 
-RoboCup 3D 识别检测系统 —— 基于 Orbbec 3D 深度相机 + YOLO（ultralytics）+ NanoDet 的实时目标识别检测程序，面向 RoboCup 3D 识别检测任务。
+RoboCup 3D 识别检测系统 —— 基于 Orbbec 3D 深度相机 + YOLO（ultralytics）的实时目标识别检测程序，面向 RoboCup 3D 识别检测任务。
 
 本项目为比赛实际使用的 3D 视觉识别程序：通过 Orbbec 深度相机采集识别场景画面，使用 YOLO 模型完成目标检测 / 分割 / 颜色识别，PyQt5 图形界面实时显示识别结果，并通过 Socket 与机器人决策程序通信，将识别结果发送给机器人端。
 
@@ -32,7 +32,6 @@ RoboCup 3D 识别检测系统 —— 基于 Orbbec 3D 深度相机 + YOLO（ultr
 - **Orbbec 深度相机支持**：优先使用 Orbbec 相机，失败自动回退普通摄像头
 - **图形化界面**：PyQt5 深色主题界面，实时显示摄像头画面、检测框、状态信息
 - **Socket 通信**：检测结果通过 TCP 发送给机器人端（默认端口 6666）
-- **轻量级备选方案**：内置 NanoDet 子项目，用于嵌入式 / 无 GPU 场景的快速检测
 
 ***
 
@@ -114,9 +113,6 @@ RoboCup-3D/
 │       ├── win/                  #   Windows: OrbbecSDK.dll / .lib / .pyd ...
 │       └── linux/                #   Linux: libOrbbecSDK.so* / libdepthengine.so* ...
 │
-├── models/                       # ultralytics YOLOv5 模型定义包（含 hub/、segment/）
-├── utils/                        # ultralytics 工具包（dataloaders、metrics、plots 等）
-├── NanoDet/                      # NanoDet-PyTorch 轻量检测子项目（独立、自含权重）
 ├── archive/                      # 历史版本脚本存档（2023/2024/2025 快照）
 │   └── README.md                 # 各版本说明
 │
@@ -329,7 +325,7 @@ model.export(format='onnx', simplify=True)
 先运行 `python tools/camera_test.py` 查看相机切换逻辑；确认 Orbbec 相机已连接且驱动正常，否则程序会回退到普通摄像头（索引 0）。
 
 **Q5：能否在无 GPU 的机器上运行？**
-可以。默认 `GPU_DEVICE = False`，CPU 模式运行；检测速度取决于模型大小，也可换用更小的自训练模型或使用 NanoDet 子项目。
+可以。默认 `GPU_DEVICE = False`，CPU 模式运行；检测速度取决于模型大小，也可换用更小的自训练模型。
 
 **Q6：界面显示但不检测？**
 确认检测模型加载成功（状态栏提示），并检查 `YOLO()` 权重路径与 `conf` 阈值（`SAT_NUM`）；摄像头画面正常后点击"重新检测"按钮触发。
@@ -339,7 +335,6 @@ model.export(format='onnx', simplify=True)
 ## 致谢
 
 - [ultralytics / YOLO](https://github.com/ultralytics/ultralytics) —— 检测、分割与训练框架
-- [NanoDet](https://github.com/RangiLyu/nanodet) —— 轻量检测子项目（`NanoDet/` 内自带致谢说明）
 - Orbbec（奥比中光）—— 深度相机与 SDK
 - 历届参赛队员的持续迭代与维护
 

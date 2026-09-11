@@ -2,7 +2,7 @@
 
 本目录保存历届比赛（2023-2025）的开发版本快照，用于**历史参考与回溯**。当前维护版本见 `src/pydect3_2025.py` / `src/pydect4_2025.py`。
 
-> ⚠️ **不保证开箱即用**：归档脚本引用的权重（如 `det300.pt`、`fruit.pt`、`color_fang_4.pt` 等）现位于 `../weights/`，且界面依赖 `../src/td_recognition.py`。如需运行归档版本，请将所需权重复制到脚本同目录，或把脚本中的路径改为 `../weights/xxx.pt`，并从仓库根目录运行。
+> ⚠️ **不保证开箱即用**：归档脚本引用的权重（如 `det300.pt`、`fruit.pt`、`color_fang_4.pt` 等）已清理，且 2023 版依赖的 `models/`、`utils/`、`NanoDet/` 目录也已移除。如需运行归档版本，请从 Git 历史 / 团队网盘恢复对应权重与依赖后，再改脚本引用路径。
 
 ---
 
@@ -12,7 +12,7 @@
 
 | 文件 | 阶段 | 引用权重 | 说明 |
 |---|---|---|---|
-| `pydect3_2023.py` | 2023 版 | `best-detect.pt`、`best-seg.pt`、NanoDet `model_best.pth` | 最早版本，含 NanoDet 联动 |
+| `pydect3_2023.py` | 2023 版 | `best-detect.pt`、`best-seg.pt`、NanoDet `model_best.pth` | 最早版本，曾联动 NanoDet（依赖已移除） |
 | `pydect3_2024.py` | 2024 版 | `det300.pt`、`yuan0517.pt`、`fruit.pt` | 加入水果检测模型 |
 | `pydect3_2024 (copy).py` | 2024 备份 | 同上 | 与 2024 版同内容备份 |
 | `pydect3_2025_zqy.py` | 2025 早期 | `det300.pt`、`yuan0517.pt`、`fruit.pt`、`new_best.pt` | 张青云同学版本 |
