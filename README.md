@@ -134,7 +134,7 @@ RoboCup-3D/
 ├── archive/                      # 历史版本脚本存档（2023/2024/2025 快照）
 │   └── README.md                 # 各版本说明
 │
-├── assets/                       # 测试图片与示例输出（cjq.jpg、P_image_51.jpg 等）
+├── assets/                       # 示例图（P_image_51.jpg 识别前、results.jpg 识别后）
 ├── docs/
 │   ├── 界面美化详细说明.md         # UI 美化改造说明
 │   └── environment/              # 环境记录（requirements_remove、pip 日志等）
