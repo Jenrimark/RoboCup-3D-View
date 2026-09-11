@@ -95,18 +95,18 @@ if not exist "pydect3_2025.py" (
 echo Checking model files...
 set missing_files=0
 
-if not exist "det300.pt" (
-    echo Warning: Missing model file - det300.pt
+if not exist "weights/det300.pt" (
+    echo Warning: Missing model file - weights/det300.pt
     set missing_files=1
 )
 
-if not exist "yuan0517.pt" (
-    echo Warning: Missing model file - yuan0517.pt
+if not exist "weights/yuan0517.pt" (
+    echo Warning: Missing model file - weights/yuan0517.pt
     set missing_files=1
 )
 
-if not exist "fruit.pt" (
-    echo Warning: Missing model file - fruit.pt
+if not exist "weights/fruit.pt" (
+    echo Warning: Missing model file - weights/fruit.pt
     set missing_files=1
 )
 

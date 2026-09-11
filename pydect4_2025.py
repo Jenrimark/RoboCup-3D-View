@@ -160,10 +160,10 @@ class ModelLoaderThread(QThread):
     def run(self):
         try:
             self.update_status.emit("正在加载主检测模型...")
-            model = YOLO('best.pt')
+            model = YOLO('weights/best.pt')
             print("√ 主检测模型加载成功")
             self.update_status.emit("正在加载分割模型...")
-            predictor = Predictor('yuan0517.pt')
+            predictor = Predictor('weights/yuan0517.pt')
             print("√ 分割模型加载成功")
             self.models_loaded.emit(model, predictor)
         except Exception as e:
@@ -450,7 +450,7 @@ class UsingTest(QMainWindow, Ui_MainWindow):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', nargs='+', type=str, default='best.pt', help='model.pt path(s)')
+    parser.add_argument('--weights', nargs='+', type=str, default='weights/best.pt', help='model.pt path(s)')
     parser.add_argument('--source', type=str, default='inference/images', help='source')
     parser.add_argument('--output', type=str, default='inference/output', help='output folder')
     parser.add_argument('--img-size', type=int, default=640, help='inference size (pixels)')
