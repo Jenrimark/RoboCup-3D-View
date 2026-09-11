@@ -11,6 +11,7 @@ RoboCup 3D 识别检测系统 —— 基于 Orbbec 3D 深度相机 + YOLO（ultr
 ## 目录
 
 - [功能特性](#功能特性)
+- [识别效果演示](#识别效果演示)
 - [系统架构](#系统架构)
 - [目录结构](#目录结构)
 - [环境要求](#环境要求)
@@ -32,6 +33,23 @@ RoboCup 3D 识别检测系统 —— 基于 Orbbec 3D 深度相机 + YOLO（ultr
 - **Orbbec 深度相机支持**：优先使用 Orbbec 相机，失败自动回退普通摄像头
 - **图形化界面**：PyQt5 深色主题界面，实时显示摄像头画面、检测框、状态信息
 - **Socket 通信**：检测结果通过 TCP 发送给机器人端（默认端口 6666）
+
+***
+
+## 识别效果演示
+
+<table align="center">
+  <tr>
+    <td align="center"><img src="assets/P_image_51.jpg" alt="识别前（相机原始画面）" width="420"></td>
+    <td align="center"><img src="assets/results.jpg" alt="识别后（YOLO 检测结果）" width="420"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>识别前</b>（相机原始画面）</td>
+    <td align="center"><b>识别后</b>（YOLO 检测结果）</td>
+  </tr>
+</table>
+
+上图为同一场景的识别前后对比：左侧为 Orbbec 相机采集的原始画面（地面摆放的饮料罐、药品箱、勺子等目标），右侧为 YOLO 模型检测后的输出，目标以红色框标注并显示类别与置信度（如 `CA001 0.81`）。
 
 ***
 
