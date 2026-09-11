@@ -81,7 +81,7 @@ RoboCup 3D 仿真足球机器人视觉检测系统 —— 基于 Orbbec 深度�
 
 ## 目录结构
 
-整理后的仓库布局（2025-09 规范化）：
+整理后的仓库布局（2026-09 规范化）：
 
 ```
 RoboCup-3D/
@@ -348,4 +348,4 @@ model.export(format='onnx', simplify=True)
 
 ---
 
-*维护：CUG RoboCup 3D 团队 · 最近更新：2025-09*
+*维护：CUG RoboCup 3D 团队 · 最近更新：2026-09*
