@@ -83,8 +83,8 @@ echo Environment activated successfully
 echo.
 
 :: Check if main program file exists
-if not exist "pydect3_2025.py" (
-    echo Error: pydect3_2025.py file not found
+if not exist "src\\pydect3_2025.py" (
+    echo Error: src\\pydect3_2025.py file not found
     echo Please ensure the startup script is in the same directory as the program file
     echo.
     pause
@@ -129,7 +129,7 @@ echo You can click "Re-detect" button after detection is completed
 echo.
 
 :: Run the program
-python pydect3_2025.py
+python src\\pydect3_2025.py
 
 :: Handle program exit
 echo.

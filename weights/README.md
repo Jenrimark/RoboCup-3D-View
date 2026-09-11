@@ -13,8 +13,8 @@
 
 | 文件 | 大小 | 类型 | 使用位置 | 说明 |
 |---|---|---|---|---|
-| `best.pt` | 5.2 MB | YOLO 检测 | `pydect3_2025.py` / `pydect4_2025.py` | 主检测模型（当前比赛入口） |
-| `yuan0517.pt` | 19 MB | YOLO 分割 | `pydect3_2025.py` / `pydect4_2025.py` | 分割模型（返回掩码，`Predictor` 使用） |
+| `best.pt` | 5.2 MB | YOLO 检测 | `src/pydect3_2025.py` / `src/pydect4_2025.py` | 主检测模型（当前比赛入口） |
+| `yuan0517.pt` | 19 MB | YOLO 分割 | `src/pydect3_2025.py` / `src/pydect4_2025.py` | 分割模型（返回掩码，`Predictor` 使用） |
 
 ## 历史版本使用的权重
 

@@ -1,7 +1,0 @@
-START
-Goal_ID=CC001;Num=5
-Goal_ID=CC002;Num=3
-Goal_ID=CD001;Num=3
-Goal_ID=CD002;Num=3
-END
-

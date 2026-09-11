@@ -1,10 +1,10 @@
-# RoboCup-3D-
+# RoboCup-3D-View
 
 RoboCup 3D 识别检测系统 —— 基于 Orbbec 3D 深度相机 + YOLO（ultralytics）+ NanoDet 的实时目标识别检测程序，面向 RoboCup 3D 识别检测任务。
 
 本项目为比赛实际使用的 3D 视觉识别程序：通过 Orbbec 深度相机采集识别场景画面，使用 YOLO 模型完成目标检测 / 分割 / 颜色识别，PyQt5 图形界面实时显示识别结果，并通过 Socket 与机器人决策程序通信，将识别结果发送给机器人端。
 
-> 说明：本项目由团队历届比赛代码演进而来，仓库中保留了完整的版本迭代历史（见 `archive/` 与 Git 提交记录）。当前维护入口为 `pydect3_2025.py` / `pydect4_2025.py`。
+> 说明：本项目由团队历届比赛代码演进而来，仓库中保留了完整的版本迭代历史（见 `archive/` 与 Git 提交记录）。当前维护入口为 `src/pydect3_2025.py` / `src/pydect4_2025.py`。
 
 ***
 
@@ -67,7 +67,7 @@ RoboCup 3D 识别检测系统 —— 基于 Orbbec 3D 深度相机 + YOLO（ultr
 - 建议 x86_64 Windows / Linux；无 GPU 可运行（默认 CPU 模式）
 ```
 
-**软件流程**（主程序 `pydect3_2025.py`）：
+**软件流程**（主程序 `src/pydect3_2025.py`）：
 
 1. 启动时加载主检测模型 `weights/best.pt` 与分割模型 `weights/yuan0517.pt`（后台线程加载，避免界面卡顿）
 2. `CameraThread` 采集视频帧（Orbbec → 普通摄像头自动切换）
@@ -89,16 +89,20 @@ RoboCup-3D/
 ├── .gitignore                    # 忽略权重/二进制/缓存/日志
 ├── requirements.txt              # Python 依赖（Python 3.9）
 │
-├── pydect3_2025.py               # 【当前主程序 v3】检测 + 分割
-├── pydect4_2025.py               # 【当前主程序 v4】检测 + 分割 + 颜色识别
-├── td_recognition.py             # PyQt5 图形界面定义（美化版，被主程序 import）
-├── start_with_conda.bat          # Windows 一键启动脚本（检查环境与权重）
+├── src/                          # ★ 正式版源码
+│   ├── pydect3_2025.py           #   【当前主程序 v3】检测 + 分割
+│   ├── pydect4_2025.py           #   【当前主程序 v4】检测 + 分割 + 颜色识别
+│   ├── td_recognition.py         #   PyQt5 图形界面定义（被主程序 import）
+│   └── simple_main.py            #   简化版主程序（仅界面 + 摄像头）
 │
-├── camera_test.py                # 相机切换测试（Orbbec ↔ 普通摄像头）
-├── simple_main.py                # 简化版主程序（仅界面 + 摄像头）
-├── simple_camera_test.py         # 相机切换逻辑测试（无需硬件）
-├── test_imports.py               # 依赖导入诊断工具
-├── toONNX.py                     # YOLO ONNX 模型推理演示
+├── tools/                        # 测试与辅助工具
+│   ├── camera_test.py            #   相机切换测试（Orbbec ↔ 普通摄像头）
+│   ├── simple_camera_test.py     #   相机切换逻辑测试（无需硬件）
+│   ├── test_imports.py           #   依赖导入诊断工具
+│   └── toONNX.py                 #   YOLO ONNX 模型推理演示
+│
+├── scripts/
+│   └── start_with_conda.bat      # Windows 一键启动脚本（检查环境与权重）
 │
 ├── weights/                      # ★ 全部模型权重（.pt / .onnx）集中管理
 │   ├── README.md                 # 权重清单与用途说明（重要，见下）
@@ -121,8 +125,7 @@ RoboCup-3D/
 ├── docs/
 │   ├── 界面美化详细说明.md         # UI 美化改造说明
 │   └── environment/              # 环境记录（requirements_remove、pip 日志等）
-├── icon/                         # 程序图标（cug.ico、TurnImg.png）
-└── result_output/                # 程序输出目录（含连接结果示例）
+└── icon/                         # 程序图标（cug.ico、TurnImg.png）
 ```
 
 ***
@@ -195,15 +198,15 @@ pip install -r requirements.txt
 
 ```bash
 # 从仓库根目录运行（权重路径为相对路径 weights/xxx.pt）
-python pydect3_2025.py        # v3：检测 + 分割
-python pydect4_2025.py        # v4：检测 + 分割 + 颜色识别
+python src/pydect3_2025.py        # v3：检测 + 分割
+python src/pydect4_2025.py        # v4：检测 + 分割 + 颜色识别
 ```
 
-Windows 下可直接双击 `start_with_conda.bat`（自动检查 conda 环境 `robocup3d` 与关键权重）。
+Windows 下可直接双击 `scripts/start_with_conda.bat`（自动检查 conda 环境 `robocup3d` 与关键权重）。
 
 ### 运行前配置
 
-1. **修改本机 IP**：编辑主程序第 20 行附近
+1. **修改本机 IP**：编辑主程序 `src/pydect3_2025.py` 第 20 行附近
    ```python
    address = '172.27.246.124'   # 修改为运行程序的电脑 IP
    ```
@@ -213,33 +216,33 @@ Windows 下可直接双击 `start_with_conda.bat`（自动检查 conda 环境 `r
 ### 工具脚本
 
 ```bash
-python camera_test.py          # 测试相机切换（Orbbec ↔ 普通）
-python simple_main.py          # 简化版界面演示
-python test_imports.py         # 诊断依赖导入问题
-python toONNX.py               # 用 weights/0512.onnx 推理 assets/P_image_51.jpg
+python tools/camera_test.py          # 测试相机切换（Orbbec ↔ 普通）
+python src/simple_main.py            # 简化版界面演示
+python tools/test_imports.py         # 诊断依赖导入问题
+python tools/toONNX.py               # 用 weights/0512.onnx 推理 assets/P_image_51.jpg
 ```
 
 ***
 
 ## 脚本说明
 
-### 当前主程序
+### 当前主程序（`src/`）
 
 | 脚本                  | 说明                                         |
 | ------------------- | ------------------------------------------ |
-| `pydect3_2025.py`   | v3 主程序：目标检测 + 分割，界面加载、网络通信、比赛主入口           |
-| `pydect4_2025.py`   | v4 主程序：在 v3 基础上扩展颜色识别（当前与 v3 内容一致，为 4 代入口） |
-| `td_recognition.py` | PyQt5 界面定义（美化版，深色渐变主题），被上述主程序 `import`     |
+| `src/pydect3_2025.py`   | v3 主程序：目标检测 + 分割，界面加载、网络通信、比赛主入口           |
+| `src/pydect4_2025.py`   | v4 主程序：在 v3 基础上扩展颜色识别（当前与 v3 内容一致，为 4 代入口） |
+| `src/td_recognition.py` | PyQt5 界面定义（美化版，深色渐变主题），被上述主程序 `import`     |
 
-### 辅助 / 测试脚本
+### 测试与辅助工具（`tools/`）
 
 | 脚本                      | 说明                          |
 | ----------------------- | --------------------------- |
-| `camera_test.py`        | Orbbec 相机与普通摄像头自动切换测试       |
-| `simple_main.py`        | 简化主程序，仅界面 + 摄像头，便于快速验证环境    |
-| `simple_camera_test.py` | 相机切换逻辑测试（无需硬件）              |
-| `test_imports.py`       | 逐模块检查依赖导入，定位 DLL 加载失败原因     |
-| `toONNX.py`             | ONNX 模型推理演示（含导出 ONNX 的参考代码） |
+| `tools/camera_test.py`        | Orbbec 相机与普通摄像头自动切换测试       |
+| `src/simple_main.py`        | 简化主程序，仅界面 + 摄像头，便于快速验证环境    |
+| `tools/simple_camera_test.py` | 相机切换逻辑测试（无需硬件）              |
+| `tools/test_imports.py`       | 逐模块检查依赖导入，定位 DLL 加载失败原因     |
+| `tools/toONNX.py`             | ONNX 模型推理演示（含导出 ONNX 的参考代码） |
 
 ### 归档脚本（`archive/`）
 
@@ -264,7 +267,7 @@ python toONNX.py               # 用 weights/0512.onnx 推理 assets/P_image_51.
 
 ### 代码结构
 
-主程序采用**多线程**架构（详见 `pydect3_2025.py`）：
+主程序采用**多线程**架构（详见 `src/pydect3_2025.py`）：
 
 | 组件                  | 作用                                 |
 | ------------------- | ---------------------------------- |
@@ -308,7 +311,7 @@ model.export(format='onnx', simplify=True)
 
 ### 新增 / 修改界面
 
-界面定义在 `td_recognition.py` 的 `Ui_MainWindow` 类中，直接编辑样式表（`setStyleSheet`）或控件布局即可；美化细节参考 `docs/界面美化详细说明.md`。
+界面定义在 `src/td_recognition.py` 的 `Ui_MainWindow` 类中，直接编辑样式表（`setStyleSheet`）或控件布局即可；美化细节参考 `docs/界面美化详细说明.md`。
 
 ### 提交规范
 
@@ -324,13 +327,13 @@ model.export(format='onnx', simplify=True)
 未安装 Orbbec SDK，执行 `pip install pyorbbecsdk`；不使用深度相机时程序会自动回退普通摄像头，也可注释相关导入。
 
 **Q2：报** **`DLL load failed`** **/** **`libOrbbecSDK.so`** **找不到**
-动态库未在系统路径中。参考[安装部署](#3-安装-orbbec-sdk使用深度相机时)将 `3rdparty/orbbec_sdk/` 对应平台库加入 `PATH` / `LD_LIBRARY_PATH`。可用 `python test_imports.py` 定位具体模块。
+动态库未在系统路径中。参考[安装部署](#3-安装-orbbec-sdk使用深度相机时)将 `3rdparty/orbbec_sdk/` 对应平台库加入 `PATH` / `LD_LIBRARY_PATH`。可用 `python tools/test_imports.py` 定位具体模块。
 
 **Q3：模型文件找不到（`FileNotFoundError: weights/xxx.pt`）**
 未放置权重。请按[准备权重](#4-准备权重)从网盘 / Releases 获取，并确认从**仓库根目录**运行程序（权重路径为相对路径）。
 
 **Q4：检测无画面 / 相机无法打开**
-先运行 `python camera_test.py` 查看相机切换逻辑；确认 Orbbec 相机已连接且驱动正常，否则程序会回退到普通摄像头（索引 0）。
+先运行 `python tools/camera_test.py` 查看相机切换逻辑；确认 Orbbec 相机已连接且驱动正常，否则程序会回退到普通摄像头（索引 0）。
 
 **Q5：能否在无 GPU 的机器上运行？**
 可以。默认 `GPU_DEVICE = False`，CPU 模式运行；检测速度取决于模型大小，可选 `weights/` 中小模型（如 `det100.pt`、`0512.pt`）或使用 NanoDet 子项目。
