@@ -1,7 +1,8 @@
+# 参考：将 PyTorch 模型导出为 ONNX 格式
 # from ultralytics import YOLO
 #
-# # 加载YOLOv8模型
-# model = YOLO("weights/0512.pt")
+# # 加载YOLO模型
+# model = YOLO("weights/best.pt")
 #
 # # 将模型导出为ONNX格式
 # success = model.export(format="onnx", simplify=True)
@@ -13,7 +14,8 @@
 from ultralytics import YOLO
 from PIL import Image
 
-model = YOLO("weights/0512.onnx")
+# 使用当前正式模型做推理演示（导出 ONNX 后也可换回 .onnx 文件）
+model = YOLO("weights/best.pt")
 results = model(source=r"assets/P_image_51.jpg")
 
 # 展示结果

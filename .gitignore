@@ -22,13 +22,6 @@ venv/
 env/
 *.whl
 
-# ---------- 模型权重（大文件，不入库） ----------
-*.pt
-*.onnx
-*.pth
-*.engine
-*.tflite
-
 # ---------- Orbbec SDK / 第三方二进制 ----------
 *.dll
 *.so

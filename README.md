@@ -104,11 +104,10 @@ RoboCup-3D/
 ├── scripts/
 │   └── start_with_conda.bat      # Windows 一键启动脚本（检查环境与权重）
 │
-├── weights/                      # ★ 全部模型权重（.pt / .onnx）集中管理
+├── weights/                      # ★ 当前模型权重（.pt）集中管理
 │   ├── README.md                 # 权重清单与用途说明（重要，见下）
 │   ├── best.pt                   # 主检测模型（当前版本使用）
-│   ├── yuan0517.pt               # 分割模型（当前版本使用）
-│   └── ...                       # 其余训练产物，详见 weights/README.md
+│   └── yuan0517.pt               # 分割模型（当前版本使用）
 │
 ├── 3rdparty/
 │   └── orbbec_sdk/               # Orbbec 相机 SDK 动态库（不入库）
@@ -172,13 +171,7 @@ pip install -r requirements.txt
 
 ### 4. 准备权重
 
-模型权重因体积较大（合计约 523 MB）**不入库管理**，请从以下渠道获取并放入 `weights/` 目录：
-
-- 团队共享网盘 / 本地备份（推荐，含全部历史权重）
-- GitHub Releases 附件（如已发布）
-- 使用自有数据集重新训练（见[开发者指南](#训练新模型)）
-
-> 当前主程序最少需要的权重：`weights/best.pt`（检测）与 `weights/yuan0517.pt`（分割）。
+当前主程序使用 `weights/best.pt`（检测）与 `weights/yuan0517.pt`（分割），均已随本地仓库保留；历史权重已清理（见 `weights/README.md`）。
 
 ***
 
@@ -219,7 +212,7 @@ Windows 下可直接双击 `scripts/start_with_conda.bat`（自动检查 conda �
 python tools/camera_test.py          # 测试相机切换（Orbbec ↔ 普通）
 python src/simple_main.py            # 简化版界面演示
 python tools/test_imports.py         # 诊断依赖导入问题
-python tools/toONNX.py               # 用 weights/0512.onnx 推理 assets/P_image_51.jpg
+python tools/toONNX.py               # 用 best.pt 推理 assets/P_image_51.jpg
 ```
 
 ***
@@ -336,7 +329,7 @@ model.export(format='onnx', simplify=True)
 先运行 `python tools/camera_test.py` 查看相机切换逻辑；确认 Orbbec 相机已连接且驱动正常，否则程序会回退到普通摄像头（索引 0）。
 
 **Q5：能否在无 GPU 的机器上运行？**
-可以。默认 `GPU_DEVICE = False`，CPU 模式运行；检测速度取决于模型大小，可选 `weights/` 中小模型（如 `det100.pt`、`0512.pt`）或使用 NanoDet 子项目。
+可以。默认 `GPU_DEVICE = False`，CPU 模式运行；检测速度取决于模型大小，也可换用更小的自训练模型或使用 NanoDet 子项目。
 
 **Q6：界面显示但不检测？**
 确认检测模型加载成功（状态栏提示），并检查 `YOLO()` 权重路径与 `conf` 阈值（`SAT_NUM`）；摄像头画面正常后点击"重新检测"按钮触发。
