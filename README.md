@@ -1,12 +1,12 @@
-# RoboCup-3D
+# RoboCup-3D-
 
-RoboCup 3D 仿真足球机器人视觉检测系统 —— 基于 Orbbec 深度相机 + YOLO（ultralytics）+ NanoDet 的实时目标检测与识别程序，面向 RoboCup 3D 仿真组比赛。
+RoboCup 3D 识别检测系统 —— 基于 Orbbec 3D 深度相机 + YOLO（ultralytics）+ NanoDet 的实时目标识别检测程序，面向 RoboCup 3D 识别检测任务。
 
-本项目为比赛实际使用的视觉检测程序：通过 Orbbec 深度相机采集赛场画面，使用 YOLO 模型完成目标检测 / 分割 / 颜色识别，PyQt5 图形界面实时显示检测结果，并通过 Socket 与机器人决策程序通信，将识别结果发送给场上机器人。
+本项目为比赛实际使用的 3D 视觉识别程序：通过 Orbbec 深度相机采集识别场景画面，使用 YOLO 模型完成目标检测 / 分割 / 颜色识别，PyQt5 图形界面实时显示识别结果，并通过 Socket 与机器人决策程序通信，将识别结果发送给机器人端。
 
 > 说明：本项目由团队历届比赛代码演进而来，仓库中保留了完整的版本迭代历史（见 `archive/` 与 Git 提交记录）。当前维护入口为 `pydect3_2025.py` / `pydect4_2025.py`。
 
----
+***
 
 ## 目录
 
@@ -23,7 +23,7 @@ RoboCup 3D 仿真足球机器人视觉检测系统 —— 基于 Orbbec 深度�
 - [常见问题](#常见问题-faq)
 - [致谢](#致谢)
 
----
+***
 
 ## 功能特性
 
@@ -34,7 +34,7 @@ RoboCup 3D 仿真足球机器人视觉检测系统 —— 基于 Orbbec 深度�
 - **Socket 通信**：检测结果通过 TCP 发送给机器人端（默认端口 6666）
 - **轻量级备选方案**：内置 NanoDet 子项目，用于嵌入式 / 无 GPU 场景的快速检测
 
----
+***
 
 ## 系统架构
 
@@ -77,7 +77,7 @@ RoboCup 3D 仿真足球机器人视觉检测系统 —— 基于 Orbbec 深度�
 
 > 检测类别与发送协议见代码头部 `data` 字典及 `pack_send()` 实现。
 
----
+***
 
 ## 目录结构
 
@@ -125,19 +125,19 @@ RoboCup-3D/
 └── result_output/                # 程序输出目录（含连接结果示例）
 ```
 
----
+***
 
 ## 环境要求
 
-| 项目 | 要求 |
-|---|---|
-| 操作系统 | Windows 10/11（主）、Linux（测试通过） |
-| Python | 3.8 ~ 3.9（`requirements.txt` 基于 3.9 锁定） |
-| 相机 | Orbbec 深度相机（可选，无则回退普通摄像头） |
-| GPU | 可选，默认 CPU 模式运行（`GPU_DEVICE = False`） |
-| 依赖体积 | PyTorch 2.2.0 + CUDA（可选）/ CPU |
+| 项目     | 要求                                       |
+| ------ | ---------------------------------------- |
+| 操作系统   | Windows 10/11（主）、Linux（测试通过）             |
+| Python | 3.8 \~ 3.9（`requirements.txt` 基于 3.9 锁定） |
+| 相机     | Orbbec 深度相机（可选，无则回退普通摄像头）                |
+| GPU    | 可选，默认 CPU 模式运行（`GPU_DEVICE = False`）     |
+| 依赖体积   | PyTorch 2.2.0 + CUDA（可选）/ CPU            |
 
----
+***
 
 ## 安装部署
 
@@ -155,6 +155,7 @@ pip install -r requirements.txt
 ```
 
 > 需要 GPU 加速时，将 PyTorch 替换为对应 CUDA 版本：
+>
 > ```bash
 > pip install torch==2.2.0 torchvision==0.17.0 --index-url https://download.pytorch.org/whl/cu118
 > ```
@@ -176,17 +177,17 @@ pip install -r requirements.txt
 
 > 当前主程序最少需要的权重：`weights/best.pt`（检测）与 `weights/yuan0517.pt`（分割）。
 
----
+***
 
 ## 模型权重
 
-所有权重集中存放于 [`weights/`](./weights/) 目录，**请先阅读 [`weights/README.md`](./weights/README.md)**，其中包含：
+所有权重集中存放于 [`weights/`](./weights/) 目录，**请先阅读** **[`weights/README.md`](./weights/README.md)**，其中包含：
 
 - 每个权重文件的用途（主检测 / 分割 / 颜色分类 / 水果检测 / 实验版本）
 - 对应使用它的脚本（当前版 / 历史版）
 - 文件大小与获取方式
 
----
+***
 
 ## 快速开始
 
@@ -218,46 +219,46 @@ python test_imports.py         # 诊断依赖导入问题
 python toONNX.py               # 用 weights/0512.onnx 推理 assets/P_image_51.jpg
 ```
 
----
+***
 
 ## 脚本说明
 
 ### 当前主程序
 
-| 脚本 | 说明 |
-|---|---|
-| `pydect3_2025.py` | v3 主程序：目标检测 + 分割，界面加载、网络通信、比赛主入口 |
-| `pydect4_2025.py` | v4 主程序：在 v3 基础上扩展颜色识别（当前与 v3 内容一致，为 4 代入口） |
-| `td_recognition.py` | PyQt5 界面定义（美化版，深色渐变主题），被上述主程序 `import` |
+| 脚本                  | 说明                                         |
+| ------------------- | ------------------------------------------ |
+| `pydect3_2025.py`   | v3 主程序：目标检测 + 分割，界面加载、网络通信、比赛主入口           |
+| `pydect4_2025.py`   | v4 主程序：在 v3 基础上扩展颜色识别（当前与 v3 内容一致，为 4 代入口） |
+| `td_recognition.py` | PyQt5 界面定义（美化版，深色渐变主题），被上述主程序 `import`     |
 
 ### 辅助 / 测试脚本
 
-| 脚本 | 说明 |
-|---|---|
-| `camera_test.py` | Orbbec 相机与普通摄像头自动切换测试 |
-| `simple_main.py` | 简化主程序，仅界面 + 摄像头，便于快速验证环境 |
-| `simple_camera_test.py` | 相机切换逻辑测试（无需硬件） |
-| `test_imports.py` | 逐模块检查依赖导入，定位 DLL 加载失败原因 |
-| `toONNX.py` | ONNX 模型推理演示（含导出 ONNX 的参考代码） |
+| 脚本                      | 说明                          |
+| ----------------------- | --------------------------- |
+| `camera_test.py`        | Orbbec 相机与普通摄像头自动切换测试       |
+| `simple_main.py`        | 简化主程序，仅界面 + 摄像头，便于快速验证环境    |
+| `simple_camera_test.py` | 相机切换逻辑测试（无需硬件）              |
+| `test_imports.py`       | 逐模块检查依赖导入，定位 DLL 加载失败原因     |
+| `toONNX.py`             | ONNX 模型推理演示（含导出 ONNX 的参考代码） |
 
 ### 归档脚本（`archive/`）
 
 `archive/` 中保存了历届比赛的完整版本快照（`pydect3_2023.py`、`pydect4_2024.py`、各带日期版本等），仅作历史参考，**不保证开箱即用**。运行归档脚本时需将其引用的权重（如 `det300.pt`、`fruit.pt`、`color_fang_4.pt`）放回脚本同目录，或将路径改为 `../weights/xxx.pt`。
 
----
+***
 
 ## 版本演进
 
 仓库 Git 历史完整记录了演进过程，关键节点：
 
-| 版本 | 提交说明 | 内容 |
-|---|---|---|
-| 1.x | 初运行 / 环境部署检查 / IP 地址优化 | 2023-2024 基础版：相机测试、界面雏形 |
-| 2.0 | 更新 best.pt | 检测模型迭代 |
-| 3.x | 启动脚本 + 界面逻辑修改至 2025 标准 | 2025 版界面美化、GPU 注释、模型调整、YOLO11 更新 |
-| 4.x | 4.1 第一第二轮初步完成 / 4.2 学长版本更新 | 4 代：颜色识别、比赛版稳定 |
+| 版本  | 提交说明                       | 内容                               |
+| --- | -------------------------- | -------------------------------- |
+| 1.x | 初运行 / 环境部署检查 / IP 地址优化     | 2023-2024 基础版：相机测试、界面雏形          |
+| 2.0 | 更新 best.pt                 | 检测模型迭代                           |
+| 3.x | 启动脚本 + 界面逻辑修改至 2025 标准     | 2025 版界面美化、GPU 注释、模型调整、YOLO11 更新 |
+| 4.x | 4.1 第一第二轮初步完成 / 4.2 学长版本更新 | 4 代：颜色识别、比赛版稳定                   |
 
----
+***
 
 ## 开发者指南
 
@@ -265,25 +266,25 @@ python toONNX.py               # 用 weights/0512.onnx 推理 assets/P_image_51.
 
 主程序采用**多线程**架构（详见 `pydect3_2025.py`）：
 
-| 组件 | 作用 |
-|---|---|
-| `ModelLoaderThread` | 后台加载检测/分割模型，避免启动卡顿 |
-| `CameraThread` | 视频帧采集 + 检测循环，发送结果信号 |
-| `NetworkThread` | Socket 连接与数据发送（`pack_send()` 打包协议） |
-| `Predictor` | 分割推理封装（返回掩码，含置信度与中心点逻辑） |
+| 组件                  | 作用                                 |
+| ------------------- | ---------------------------------- |
+| `ModelLoaderThread` | 后台加载检测/分割模型，避免启动卡顿                 |
+| `CameraThread`      | 视频帧采集 + 检测循环，发送结果信号                |
+| `NetworkThread`     | Socket 连接与数据发送（`pack_send()` 打包协议） |
+| `Predictor`         | 分割推理封装（返回掩码，含置信度与中心点逻辑）            |
 
 信号（`pyqtSignal`）驱动界面更新：`update_image`、`update_label`、`update_result`、`detection_finished`、`connection_ready` 等。
 
 ### 常用修改点
 
-| 需求 | 修改位置 |
-|---|---|
+| 需求           | 修改位置                                                  |
+| ------------ | ----------------------------------------------------- |
 | 修改通信 IP / 端口 | 主程序 `address` 变量、`NetworkThread(host=..., port=6666)` |
-| 切换检测模型 | `YOLO('weights/best.pt')` → 改为 `weights/` 下其他检测权重 |
-| 切换分割模型 | `Predictor('weights/yuan0517.pt')` → 其他分割权重 |
-| 启用 GPU | `GPU_DEVICE = False` → `True`（需安装 CUDA 版 PyTorch） |
-| 修改检测类别 | 代码头部 `data` 字典、`rgb_dict`、`elseObject` |
-| 修改检测阈值 | `SAT_NUM`、`Predictor.predict()` 中 `conf=` 参数 |
+| 切换检测模型       | `YOLO('weights/best.pt')` → 改为 `weights/` 下其他检测权重     |
+| 切换分割模型       | `Predictor('weights/yuan0517.pt')` → 其他分割权重           |
+| 启用 GPU       | `GPU_DEVICE = False` → `True`（需安装 CUDA 版 PyTorch）     |
+| 修改检测类别       | 代码头部 `data` 字典、`rgb_dict`、`elseObject`                |
+| 修改检测阈值       | `SAT_NUM`、`Predictor.predict()` 中 `conf=` 参数          |
 
 ### 训练新模型
 
@@ -315,14 +316,14 @@ model.export(format='onnx', simplify=True)
 - 提交信息建议遵循既有风格：`X.Y 简要说明`（如 `4.3 修复断线重连`）
 - 新脚本放入 `archive/` 前请在 `archive/README.md` 登记版本说明
 
----
+***
 
 ## 常见问题（FAQ）
 
-**Q1：启动报 `No module named 'pyorbbecsdk'`**
+**Q1：启动报** **`No module named 'pyorbbecsdk'`**
 未安装 Orbbec SDK，执行 `pip install pyorbbecsdk`；不使用深度相机时程序会自动回退普通摄像头，也可注释相关导入。
 
-**Q2：报 `DLL load failed` / `libOrbbecSDK.so` 找不到**
+**Q2：报** **`DLL load failed`** **/** **`libOrbbecSDK.so`** **找不到**
 动态库未在系统路径中。参考[安装部署](#3-安装-orbbec-sdk使用深度相机时)将 `3rdparty/orbbec_sdk/` 对应平台库加入 `PATH` / `LD_LIBRARY_PATH`。可用 `python test_imports.py` 定位具体模块。
 
 **Q3：模型文件找不到（`FileNotFoundError: weights/xxx.pt`）**
@@ -337,7 +338,7 @@ model.export(format='onnx', simplify=True)
 **Q6：界面显示但不检测？**
 确认检测模型加载成功（状态栏提示），并检查 `YOLO()` 权重路径与 `conf` 阈值（`SAT_NUM`）；摄像头画面正常后点击"重新检测"按钮触发。
 
----
+***
 
 ## 致谢
 
@@ -346,6 +347,6 @@ model.export(format='onnx', simplify=True)
 - Orbbec（奥比中光）—— 深度相机与 SDK
 - 历届参赛队员的持续迭代与维护
 
----
+***
 
 *维护：CUG RoboCup 3D 团队 · 最近更新：2026-09*
